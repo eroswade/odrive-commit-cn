@@ -140,7 +140,7 @@ void AsciiProtocol::cmd_set_position(char * pStr, bool use_checksum) {
     } else if (motor_number >= AXIS_COUNT) {
         respond(use_checksum, "invalid motor %u", motor_number);
     } else {
-        Axis& axis = axes[motor_number];
+        Axis& axis = axes;
         axis.controller_.config_.control_mode = Controller::CONTROL_MODE_POSITION_CONTROL;
         axis.controller_.input_pos_ = pos_setpoint;
         if (numscan >= 3)
@@ -166,7 +166,7 @@ void AsciiProtocol::cmd_set_position_wl(char * pStr, bool use_checksum) {
     } else if (motor_number >= AXIS_COUNT) {
         respond(use_checksum, "invalid motor %u", motor_number);
     } else {
-        Axis& axis = axes[motor_number];
+        Axis& axis = axes;
         axis.controller_.config_.control_mode = Controller::CONTROL_MODE_POSITION_CONTROL;
         axis.controller_.input_pos_ = pos_setpoint;
         if (numscan >= 3)
@@ -191,7 +191,7 @@ void AsciiProtocol::cmd_set_velocity(char * pStr, bool use_checksum) {
     } else if (motor_number >= AXIS_COUNT) {
         respond(use_checksum, "invalid motor %u", motor_number);
     } else {
-        Axis& axis = axes[motor_number];
+        Axis& axis = axes;
         axis.controller_.config_.control_mode = Controller::CONTROL_MODE_VELOCITY_CONTROL;
         axis.controller_.input_vel_ = vel_setpoint;
         if (numscan >= 3)
@@ -213,7 +213,7 @@ void AsciiProtocol::cmd_set_torque(char * pStr, bool use_checksum) {
     } else if (motor_number >= AXIS_COUNT) {
         respond(use_checksum, "invalid motor %u", motor_number);
     } else {
-        Axis& axis = axes[motor_number];
+        Axis& axis = axes;
         axis.controller_.config_.control_mode = Controller::CONTROL_MODE_TORQUE_CONTROL;
         axis.controller_.input_torque_ = torque_setpoint;
         axis.watchdog_feed();
@@ -236,7 +236,7 @@ void AsciiProtocol::cmd_encoder(char * pStr, bool use_checksum) {
         } else if (motor_number >= AXIS_COUNT) {
             respond(use_checksum, "invalid motor %u", motor_number);
         } else {
-            Axis& axis = axes[motor_number];
+            Axis& axis = axes;
             axis.encoder_.set_linear_count(encoder_count);
             axis.watchdog_feed();
             respond(use_checksum, "encoder set to %u", encoder_count);
@@ -259,7 +259,7 @@ void AsciiProtocol::cmd_set_trapezoid_trajectory(char* pStr, bool use_checksum) 
     } else if (motor_number >= AXIS_COUNT) {
         respond(use_checksum, "invalid motor %u", motor_number);
     } else {
-        Axis& axis = axes[motor_number];
+        Axis& axis = axes;
         axis.controller_.config_.input_mode = Controller::INPUT_MODE_TRAP_TRAJ;
         axis.controller_.config_.control_mode = Controller::CONTROL_MODE_POSITION_CONTROL;
         axis.controller_.input_pos_ = goal_point;
@@ -280,7 +280,7 @@ void AsciiProtocol::cmd_get_feedback(char * pStr, bool use_checksum) {
     } else if (motor_number >= AXIS_COUNT) {
         respond(use_checksum, "invalid motor %u", motor_number);
     } else {
-        Axis& axis = axes[motor_number];
+        Axis& axis = axes;
         respond(use_checksum, "%f %f",
                 (double)axis.encoder_.pos_estimate_.any().value_or(0.0f),
                 (double)axis.encoder_.vel_estimate_.any().value_or(0.0f));
@@ -396,7 +396,7 @@ void AsciiProtocol::cmd_update_axis_wdg(char * pStr, bool use_checksum) {
     } else if (motor_number >= AXIS_COUNT) {
         respond(use_checksum, "invalid motor %u", motor_number);
     } else {
-        axes[motor_number].watchdog_feed();
+        axes.watchdog_feed();
     }
 }
 

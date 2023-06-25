@@ -384,12 +384,12 @@ float Motor::effective_current_lim()
     float current_lim = config_.current_lim;
     // Hardware limit
     if (axis_->motor_.config_.motor_type == Motor::MOTOR_TYPE_GIMBAL) {
-        //ÔÆÌ¨µç»úÊ¹ÓÃµçÑ¹¿ØÖÆ(ÔÆÌ¨µç»ú×ªËÙµÍ)
+        //äº‘å°ç”µæœºä½¿ç”¨ç”µå‹æ§åˆ¶(äº‘å°ç”µæœºè½¬é€Ÿä½)
         current_lim = std::min(current_lim, 0.98f*one_by_sqrt3*vbus_voltage); //gimbal motor is voltage control
     }
     else 
     {
-        //½«Á½¸öµçÁ÷ÏŞÖÆÁ¿µÄ×îĞ¡Öµ(º½Ä£µç»úÓÃÕâ¸ö)
+        //å°†ä¸¤ä¸ªç”µæµé™åˆ¶é‡çš„æœ€å°å€¼(èˆªæ¨¡ç”µæœºç”¨è¿™ä¸ª)
         current_lim = std::min(current_lim, axis_->motor_.max_allowed_current_);
     }
 
@@ -397,7 +397,7 @@ float Motor::effective_current_lim()
     current_lim = std::min(current_lim, motor_thermistor_.get_current_limit(config_.current_lim));
     current_lim = std::min(current_lim, fet_thermistor_.get_current_limit(config_.current_lim));
     effective_current_lim_ = current_lim;
-    //¸÷ÖÖÒòËØµÄÏŞÁ÷ĞèÍ¬Ê±Âú×ã
+    //å„ç§å› ç´ çš„é™æµéœ€åŒæ—¶æ»¡è¶³
     return effective_current_lim_;
 }
 
@@ -406,9 +406,10 @@ float Motor::effective_current_lim()
 float Motor::max_available_torque() 
 {
     if (config_.motor_type == Motor::MOTOR_TYPE_ACIM) 
+    {
     
         // torque_constant=0.04
-        // effective_current_lim_ = current_lim = 15×Ô¼ºµÄÉèÖÃ
+        // effective_current_lim_ = current_lim = 15è‡ªå·±çš„è®¾ç½®
         float max_torque = effective_current_lim_ * config_.torque_constant * axis_->acim_estimator_.rotor_flux_;
         max_torque = std::clamp(max_torque, 0.0f, config_.torque_lim);
         return max_torque;
@@ -420,7 +421,7 @@ float Motor::max_available_torque()
     }
 }
 
-// ´ÓADC¿Ú¶ÁµçÁ÷Êı¾İ ×îºó·µ»ØµçÁ÷Öµ
+// ä»ADCå£è¯»ç”µæµæ•°æ® æœ€åè¿”å›ç”µæµå€¼
 std::optional<float> Motor::phase_current_from_adcval(uint32_t ADCValue) 
 {
     // Make sure the measurements don't come too close to the current sensor's hardware limitations
@@ -550,13 +551,13 @@ bool Motor::run_calibration()
     return true;
 }
 
-// µç»ú¿ØÖÆ¸üĞÂ³ÌĞò
-// ºËĞÄĞŞ¸Ä Idq_setpoint_ ºÍ Vdq_setpoint_
+// ç”µæœºæ§åˆ¶æ›´æ–°ç¨‹åº
+// æ ¸å¿ƒä¿®æ”¹ Idq_setpoint_ å’Œ Vdq_setpoint_
 void Motor::update(uint32_t timestamp) 
 {
     // Load torque setpoint, convert to motor direction
-    // @MARK  Èç¹ûcontrollerÊÇ¾²Ö¹µÄ, ÄÇÃ´. torqueÎª0
-    // Èç¹ûÓÃÊÖÍÆµ¼ÖÂÎ»ÖÃ¸Ä±ä. Ôòtorque¿ªÊ¼³öÏÖ
+    // @MARK  å¦‚æœcontrolleræ˜¯é™æ­¢çš„, é‚£ä¹ˆ. torqueä¸º0
+    // å¦‚æœç”¨æ‰‹æ¨å¯¼è‡´ä½ç½®æ”¹å˜. åˆ™torqueå¼€å§‹å‡ºç°
     std::optional<float> maybe_torque = torque_setpoint_src_.present();//torque_setpoint_src_ = controller_.torque_output_
     if (!maybe_torque.has_value()) 
     {
@@ -566,7 +567,7 @@ void Motor::update(uint32_t timestamp)
     float torque = direction_ * *maybe_torque;
 
     // Load setpoints from previous iteration.
-    // @MARK ÉÏÒ»´Îid
+    // @MARK ä¸Šä¸€æ¬¡id
     auto [id, iq] = Idq_setpoint_.previous()
                      .value_or(float2D{0.0f, 0.0f});
     // Load effective current limit
@@ -582,8 +583,8 @@ void Motor::update(uint32_t timestamp)
     } 
     else 
     {
-        // id»ù±¾ÉÏÖ»ºÍÉÏÒ»´ÎidÓĞ¹Ø.
-        id = std::clamp(id, -ilim*0.99f, ilim*0.99f); // 1% space reserved for Iq to avoid numerical issues id²»Æğ¹ı15
+        // idåŸºæœ¬ä¸Šåªå’Œä¸Šä¸€æ¬¡idæœ‰å…³.
+        id = std::clamp(id, -ilim*0.99f, ilim*0.99f); // 1% space reserved for Iq to avoid numerical issues idä¸èµ·è¿‡15
     }
 
     // Convert requested torque to current
@@ -596,12 +597,12 @@ void Motor::update(uint32_t timestamp)
     }
 
     // 2-norm clamping where Id takes priority 
-    // ÏŞÖÆiq< sqrt(15^2 - id^2) Ò²¾ÍÊÇid+iq²»´óÓÚ15
+    // é™åˆ¶iq< sqrt(15^2 - id^2) ä¹Ÿå°±æ˜¯id+iqä¸å¤§äº15
     float iq_lim_sqr = SQ(ilim) - SQ(id);
     float Iq_lim = (iq_lim_sqr <= 0.0f) ? 0.0f : sqrt(iq_lim_sqr);
     iq = std::clamp(iq, -Iq_lim, Iq_lim);
 
-    // Êä³öIdq_setpoint_
+    // è¾“å‡ºIdq_setpoint_
     if (axis_->motor_.config_.motor_type != Motor::MOTOR_TYPE_GIMBAL) 
     {
         Idq_setpoint_ = {id, iq};
@@ -618,9 +619,9 @@ void Motor::update(uint32_t timestamp)
     float vd = 0.0f;
     float vq = 0.0f;
 
-    std::optional<float> phase_vel = phase_vel_src_.present();//Î»ÖÃ½ÇËÙ¶È ²»¶¯µÄÊ±ºòËÙ¶ÈÎª 0
+    std::optional<float> phase_vel = phase_vel_src_.present();//ä½ç½®è§’é€Ÿåº¦ ä¸åŠ¨çš„æ—¶å€™é€Ÿåº¦ä¸º 0
 
-    if (config_.R_wL_FF_enable)//²»ÔËĞĞ // µç¸ĞÎüÄÜ
+    if (config_.R_wL_FF_enable)//ä¸è¿è¡Œ // ç”µæ„Ÿå¸èƒ½
     {
         if (!phase_vel.has_value()) 
         {
@@ -634,7 +635,7 @@ void Motor::update(uint32_t timestamp)
         vq += config_.phase_resistance * iq;// vq = vq+0.082*iq
     }
 
-    if (config_.bEMF_FF_enable)//²»ÔËĞĞ // µç¶¯ÊÆ¼ÆËã ¼ÆËã·´µç¶¯ÊÆÔö¼ÓµÄÁ¦, Òª³¬¹ıÕâ¸öÁ¦²ÅºÃÔËĞĞ
+    if (config_.bEMF_FF_enable)//ä¸è¿è¡Œ // ç”µåŠ¨åŠ¿è®¡ç®— è®¡ç®—åç”µåŠ¨åŠ¿å¢åŠ çš„åŠ›, è¦è¶…è¿‡è¿™ä¸ªåŠ›æ‰å¥½è¿è¡Œ
     {
         if (!phase_vel.has_value()) 
         {
@@ -652,16 +653,16 @@ void Motor::update(uint32_t timestamp)
     }
     else 
     {
-        Vdq_setpoint_ = {vd, vq};// ÉÏÃæÁ½¸ö¶¼²»ÔËĞĞµÄ»°. ÕâÀïÉèÖÃÎª0ÁË??
+        Vdq_setpoint_ = {vd, vq};// ä¸Šé¢ä¸¤ä¸ªéƒ½ä¸è¿è¡Œçš„è¯. è¿™é‡Œè®¾ç½®ä¸º0äº†??
     }
 }
 
 
 /**
  * @brief Called when the underlying hardware timer triggers an update event.
- * µçÁ÷¼ì²â»Øµ÷. ÔÚboard.cppÀïControlLoop_IRQHandlerµ÷ÓÃ 
- * @param current 3¸öÊı×é u v w,»òÕßÒ²½ĞABC.
- * ºËĞÄÊÇ°Ñ²âÁ¿µçÑ¹,¼ÓÉÏ¼ÆËã³öÀ´µÄµçÁ÷,¸ø¿ØÖÆÏµÍ³
+ * ç”µæµæ£€æµ‹å›è°ƒ. åœ¨board.cppé‡ŒControlLoop_IRQHandlerè°ƒç”¨ 
+ * @param current 3ä¸ªæ•°ç»„ u v w,æˆ–è€…ä¹Ÿå«ABC.
+ * æ ¸å¿ƒæ˜¯æŠŠæµ‹é‡ç”µå‹,åŠ ä¸Šè®¡ç®—å‡ºæ¥çš„ç”µæµ,ç»™æ§åˆ¶ç³»ç»Ÿ
  */
 void Motor::current_meas_cb(uint32_t timestamp, std::optional<Iph_ABC_t> current) 
 {
@@ -727,7 +728,7 @@ void Motor::current_meas_cb(uint32_t timestamp, std::optional<Iph_ABC_t> current
 
     if (control_law_) 
     {
-        // °ÑµçÑ¹µçÁ÷´«ËÍ¸ø¿ØÖÆÆ÷. foc 
+        // æŠŠç”µå‹ç”µæµä¼ é€ç»™æ§åˆ¶å™¨. foc 
         Error err = control_law_->on_measurement(vbus_voltage,
                             current_meas_.has_value() ?
                                 std::make_optional(std::array<float, 3>{current_meas_->phA, current_meas_->phB, current_meas_->phC})
@@ -741,7 +742,7 @@ void Motor::current_meas_cb(uint32_t timestamp, std::optional<Iph_ABC_t> current
 
 /**
  * @brief Called when the underlying hardware timer triggers an update event.
- * Õâ¸öº¯ÊıµÃµ½µÄ½á¹û,Ö»¸ø current_meas_cb ¼ì²éÊÇ·ñ³¬max
+ * è¿™ä¸ªå‡½æ•°å¾—åˆ°çš„ç»“æœ,åªç»™ current_meas_cb æ£€æŸ¥æ˜¯å¦è¶…max
  */
 void Motor::dc_calib_cb(uint32_t timestamp, std::optional<Iph_ABC_t> current) 
 {
@@ -763,7 +764,7 @@ void Motor::dc_calib_cb(uint32_t timestamp, std::optional<Iph_ABC_t> current)
     }
 }
 
-// PWM»Øµ÷ Ò²ÊÇÔÚboard.cppµÄControlLoop_IRQHandlerÀïµ÷ÓÃ
+// PWMå›è°ƒ ä¹Ÿæ˜¯åœ¨board.cppçš„ControlLoop_IRQHandleré‡Œè°ƒç”¨
 void Motor::pwm_update_cb(uint32_t output_timestamp) 
 {
     TaskTimerContext tmr{axis_->task_times_.pwm_update};
@@ -779,7 +780,7 @@ void Motor::pwm_update_cb(uint32_t output_timestamp)
             output_timestamp, pwm_timings, &i_bus);
     }
 
-    // Apply control law to calculate PWM duty cycles ¿ØÖÆPWMµÄduty cycles
+    // Apply control law to calculate PWM duty cycles æ§åˆ¶PWMçš„duty cycles
     if (is_armed_ && control_law_status == ERROR_NONE) 
     {
         uint16_t next_timings[] = {

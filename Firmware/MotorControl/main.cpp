@@ -84,99 +84,94 @@ void StatusLedController::update()
 #endif
 }
 
-// ¶ÁÅäÖÃ
+// è¯»é…ç½®
 static bool config_read_all() 
 {
     bool success = board_read_config() &&
            config_manager.read(&odrv.config_) &&
            config_manager.read(&odrv.can_.config_);
-    for (size_t i = 0; (i < AXIS_COUNT) && success; ++i) 
     {
-        success = config_manager.read(&encoders[i].config_) &&
-                  config_manager.read(&axes[i].sensorless_estimator_.config_) &&
-                  config_manager.read(&axes[i].controller_.config_) &&
-                  config_manager.read(&axes[i].trap_traj_.config_) &&
-                  config_manager.read(&axes[i].min_endstop_.config_) &&
-                  config_manager.read(&axes[i].max_endstop_.config_) &&
-                  config_manager.read(&axes[i].mechanical_brake_.config_) &&
-                  config_manager.read(&motors[i].config_) &&
-                  config_manager.read(&motors[i].fet_thermistor_.config_) &&
-                  config_manager.read(&motors[i].motor_thermistor_.config_) &&
-                  config_manager.read(&axes[i].config_);
+        success = config_manager.read(&encoders.config_) &&
+                  config_manager.read(&axes.sensorless_estimator_.config_) &&
+                  config_manager.read(&axes.controller_.config_) &&
+                  config_manager.read(&axes.trap_traj_.config_) &&
+                  config_manager.read(&axes.min_endstop_.config_) &&
+                  config_manager.read(&axes.max_endstop_.config_) &&
+                  config_manager.read(&axes.mechanical_brake_.config_) &&
+                  config_manager.read(&motors.config_) &&
+                  config_manager.read(&motors.fet_thermistor_.config_) &&
+                  config_manager.read(&motors.motor_thermistor_.config_) &&
+                  config_manager.read(&axes.config_);
     }
     return success;
 }
 
-// Ğ´ÅäÖÃ save_configµ÷ÓÃ
+// å†™é…ç½® save_configè°ƒç”¨
 static bool config_write_all() 
 {
     bool success = board_write_config() &&
            config_manager.write(&odrv.config_) &&
            config_manager.write(&odrv.can_.config_);
-    for (size_t i = 0; (i < AXIS_COUNT) && success; ++i) 
     {
-        success = config_manager.write(&encoders[i].config_) &&
-                  config_manager.write(&axes[i].sensorless_estimator_.config_) &&
-                  config_manager.write(&axes[i].controller_.config_) &&
-                  config_manager.write(&axes[i].trap_traj_.config_) &&
-                  config_manager.write(&axes[i].min_endstop_.config_) &&
-                  config_manager.write(&axes[i].max_endstop_.config_) &&
-                  config_manager.write(&axes[i].mechanical_brake_.config_) &&
-                  config_manager.write(&motors[i].config_) &&
-                  config_manager.write(&motors[i].fet_thermistor_.config_) &&
-                  config_manager.write(&motors[i].motor_thermistor_.config_) &&
-                  config_manager.write(&axes[i].config_);
+        success = config_manager.write(&encoders.config_) &&
+                  config_manager.write(&axes.sensorless_estimator_.config_) &&
+                  config_manager.write(&axes.controller_.config_) &&
+                  config_manager.write(&axes.trap_traj_.config_) &&
+                  config_manager.write(&axes.min_endstop_.config_) &&
+                  config_manager.write(&axes.max_endstop_.config_) &&
+                  config_manager.write(&axes.mechanical_brake_.config_) &&
+                  config_manager.write(&motors.config_) &&
+                  config_manager.write(&motors.fet_thermistor_.config_) &&
+                  config_manager.write(&motors.motor_thermistor_.config_) &&
+                  config_manager.write(&axes.config_);
     }
     return success;
 }
 
-// Çå¿ÕÅäÖÃ
+// æ¸…ç©ºé…ç½®
 static void config_clear_all() 
 {
     odrv.config_ = {};
     odrv.can_.config_ = {};
-    for (size_t i = 0; i < AXIS_COUNT; ++i) 
     {
-        encoders[i].config_ = {};
-        axes[i].sensorless_estimator_.config_ = {};
-        axes[i].controller_.config_ = {};
-        axes[i].controller_.config_.load_encoder_axis = i;
-        axes[i].trap_traj_.config_ = {};
-        axes[i].min_endstop_.config_ = {};
-        axes[i].max_endstop_.config_ = {};
-        axes[i].mechanical_brake_.config_ = {};
-        motors[i].config_ = {};
-        motors[i].fet_thermistor_.config_ = {};
-        motors[i].motor_thermistor_.config_ = {};
-        axes[i].clear_config();
+        encoders.config_ = {};
+        axes.sensorless_estimator_.config_ = {};
+        axes.controller_.config_ = {};
+        axes.controller_.config_.load_encoder_axis = 0;
+        axes.trap_traj_.config_ = {};
+        axes.min_endstop_.config_ = {};
+        axes.max_endstop_.config_ = {};
+        axes.mechanical_brake_.config_ = {};
+        motors.config_ = {};
+        motors.fet_thermistor_.config_ = {};
+        motors.motor_thermistor_.config_ = {};
+        axes.clear_config();
     }
 }
 
 static bool config_apply_all() 
 {
     bool success = odrv.can_.apply_config();
-    for (size_t i = 0; (i < AXIS_COUNT) && success; ++i) 
     {
-        success = encoders[i].apply_config(motors[i].config_.motor_type)
-               && axes[i].controller_.apply_config()
-               && axes[i].min_endstop_.apply_config()
-               && axes[i].max_endstop_.apply_config()
-               && motors[i].apply_config()
-               && motors[i].motor_thermistor_.apply_config()
-               && axes[i].apply_config();
+        success = encoders.apply_config(motors.config_.motor_type)
+               && axes.controller_.apply_config()
+               && axes.min_endstop_.apply_config()
+               && axes.max_endstop_.apply_config()
+               && motors.apply_config()
+               && motors.motor_thermistor_.apply_config()
+               && axes.apply_config();
     }
     return success;
 }
 
-// ´æÅäÖÃ. ¶ÔÓ¦odrv0.save_configuration()
+// å­˜é…ç½®. å¯¹åº”odrv0.save_configuration()
 bool ODrive::save_configuration(void) 
 {
     bool success;
 
     CRITICAL_SECTION() 
     {
-        bool any_armed = std::any_of(axes.begin(), axes.end(),
-            [](auto& axis){ return axis.motor_.is_armed_; });
+        bool any_armed = axes.motor_.is_armed_;
         if (any_armed) 
         {
             return false;
@@ -189,7 +184,7 @@ bool ODrive::save_configuration(void)
                && config_write_all()
                && config_manager.finish_store();
 
-        // ×¢Òâ: ÔÚsave_configurationµÄÊ±ºò,»á¶ªµôÒ»Ğ©ÖĞ¶Ï.ËùÒÔ×îºÃÖØÆôÒ»ÏÂ.
+        // æ³¨æ„: åœ¨save_configurationçš„æ—¶å€™,ä¼šä¸¢æ‰ä¸€äº›ä¸­æ–­.æ‰€ä»¥æœ€å¥½é‡å¯ä¸€ä¸‹.
         // FIXME: during save_configuration we might miss some interrupts
         // because the CPU gets halted during a flash erase. Missing events
         // (encoder updates, step/dir steps) is not good so to be sure we just
@@ -200,14 +195,14 @@ bool ODrive::save_configuration(void)
     return success;
 }
 
-// É¾³ıÅäÖÃ ¶ÔÓ¦odrv0.erase_configuration()
+// åˆ é™¤é…ç½® å¯¹åº”odrv0.erase_configuration()
 void ODrive::erase_configuration(void) 
 {
     NVM_erase();
 
-    // ÕâÀïÖØÆô¶¯,NVIC_SystemReset,ÊÇ·ÀÖ¹save_configuration°ÑRAMĞ´µ½NVM. NVMÊÇÒ»¿éFLASH. 
-    // Õâ¸ö²Ù×÷Ä¿µÄÊÇ°ÑRAMÉèÎªÄ¬ÈÏÖµ. µ«ÏÖÔÚ²»È·¶¨,ÒòÎªÒ»Ğ©Startup²Ù×÷ÒÀÀµÕâĞ©ÅäÖÃ. 
-    // ËùÒÔÕâ¸ö²Ù×÷¿ÉÄÜ»áµ¼ÖÂÒ»Ğ©±ÀÀ£.
+    // è¿™é‡Œé‡å¯åŠ¨,NVIC_SystemReset,æ˜¯é˜²æ­¢save_configurationæŠŠRAMå†™åˆ°NVM. NVMæ˜¯ä¸€å—FLASH. 
+    // è¿™ä¸ªæ“ä½œç›®çš„æ˜¯æŠŠRAMè®¾ä¸ºé»˜è®¤å€¼. ä½†ç°åœ¨ä¸ç¡®å®š,å› ä¸ºä¸€äº›Startupæ“ä½œä¾èµ–è¿™äº›é…ç½®. 
+    // æ‰€ä»¥è¿™ä¸ªæ“ä½œå¯èƒ½ä¼šå¯¼è‡´ä¸€äº›å´©æºƒ.
     // FIXME: this reboot is a workaround because we don't want the next save_configuration
     // to write back the old configuration from RAM to NVM. The proper action would
     // be to reset the values in RAM to default. However right now that's not
@@ -239,38 +234,26 @@ void ODrive::enter_dfu_mode()
 bool ODrive::any_error() 
 {
     return error_ != ODrive::ERROR_NONE
-        || std::any_of(axes.begin(), axes.end(), [](Axis& axis)
-            {
-            return axis.error_ != Axis::ERROR_NONE
-                || axis.motor_.error_ != Motor::ERROR_NONE
-                || axis.sensorless_estimator_.error_ != SensorlessEstimator::ERROR_NONE
-                || axis.encoder_.error_ != Encoder::ERROR_NONE
-                || axis.controller_.error_ != Controller::ERROR_NONE;
-        });
+        ||   axes.error_ != Axis::ERROR_NONE
+                || axes.motor_.error_ != Motor::ERROR_NONE
+                || axes.sensorless_estimator_.error_ != SensorlessEstimator::ERROR_NONE
+                || axes.encoder_.error_ != Encoder::ERROR_NONE
+                || axes.controller_.error_ != Controller::ERROR_NONE;
 }
 
 uint64_t ODrive::get_drv_fault() 
 {
-#if AXIS_COUNT == 1
-    return motors[0].gate_driver_.get_error();
-#elif AXIS_COUNT == 2
-    return (uint64_t)motors[0].gate_driver_.get_error() | ((uint64_t)motors[1].gate_driver_.get_error() << 32ULL);
-#else
-    #error "not supported"
-#endif
+    return motors.gate_driver_.get_error();
 }
 
 void ODrive::clear_errors() 
 {
-    for (auto& axis: axes) 
-    {
-        axis.motor_.error_ = Motor::ERROR_NONE;
-        axis.controller_.error_ = Controller::ERROR_NONE;
-        axis.sensorless_estimator_.error_ = SensorlessEstimator::ERROR_NONE;
-        axis.encoder_.error_ = Encoder::ERROR_NONE;
-        axis.encoder_.spi_error_rate_ = 0.0f;
-        axis.error_ = Axis::ERROR_NONE;
-    }
+        axes.motor_.error_ = Motor::ERROR_NONE;
+        axes.controller_.error_ = Controller::ERROR_NONE;
+        axes.sensorless_estimator_.error_ = SensorlessEstimator::ERROR_NONE;
+        axes.encoder_.error_ = Encoder::ERROR_NONE;
+        axes.encoder_.spi_error_rate_ = 0.0f;
+        axes.error_ = Axis::ERROR_NONE;
     error_ = ERROR_NONE;
     if (odrv.config_.enable_brake_resistor) 
     {
@@ -281,18 +264,15 @@ void ODrive::clear_errors()
 extern "C" 
 {
 
-// ³ÌĞò±ÀÀ£ºóµÄ´¦Àí
+// ç¨‹åºå´©æºƒåçš„å¤„ç†
 void vApplicationStackOverflowHook(xTaskHandle *pxTask, signed portCHAR *pcTaskName) 
 {
-    for(auto& axis: axes)
-    {
-        axis.motor_.disarm();
-    }
+        axes.motor_.disarm();
     safety_critical_disarm_brake_resistor();
     for (;;); // TODO: safe action
 }
 
-// ¿ÕÏĞ´¦Àí
+// ç©ºé—²å¤„ç†
 void vApplicationIdleHook(void) 
 {
     if (odrv.system_stats_.fully_booted) 
@@ -300,23 +280,21 @@ void vApplicationIdleHook(void)
         odrv.system_stats_.uptime = xTaskGetTickCount();
         odrv.system_stats_.min_heap_space = xPortGetMinimumEverFreeHeapSize();
 
-        uint32_t min_stack_space[AXIS_COUNT];
-        std::transform(axes.begin(), axes.end(), std::begin(min_stack_space), [](auto& axis) { return uxTaskGetStackHighWaterMark(axis.thread_id_) * sizeof(StackType_t); });
-        odrv.system_stats_.max_stack_usage_axis = axes[0].stack_size_ - *std::min_element(std::begin(min_stack_space), std::end(min_stack_space));
+        odrv.system_stats_.max_stack_usage_axis = axes.stack_size_ - uxTaskGetStackHighWaterMark(axes.thread_id_) * sizeof(StackType_t); 
         odrv.system_stats_.max_stack_usage_usb = stack_size_usb_thread - uxTaskGetStackHighWaterMark(usb_thread) * sizeof(StackType_t);
         odrv.system_stats_.max_stack_usage_uart = stack_size_uart_thread - uxTaskGetStackHighWaterMark(uart_thread) * sizeof(StackType_t);
         odrv.system_stats_.max_stack_usage_startup = stack_size_default_task - uxTaskGetStackHighWaterMark(defaultTaskHandle) * sizeof(StackType_t);
         odrv.system_stats_.max_stack_usage_can = odrv.can_.stack_size_ - uxTaskGetStackHighWaterMark(odrv.can_.thread_id_) * sizeof(StackType_t);
         odrv.system_stats_.max_stack_usage_analog =  stack_size_analog_thread - uxTaskGetStackHighWaterMark(analog_thread) * sizeof(StackType_t);
 
-        odrv.system_stats_.stack_size_axis = axes[0].stack_size_;
+        odrv.system_stats_.stack_size_axis = axes.stack_size_;
         odrv.system_stats_.stack_size_usb = stack_size_usb_thread;
         odrv.system_stats_.stack_size_uart = stack_size_uart_thread;
         odrv.system_stats_.stack_size_startup = stack_size_default_task;
         odrv.system_stats_.stack_size_can = odrv.can_.stack_size_;
         odrv.system_stats_.stack_size_analog = stack_size_analog_thread;
 
-        odrv.system_stats_.prio_axis = osThreadGetPriority(axes[0].thread_id_);
+        odrv.system_stats_.prio_axis = osThreadGetPriority(axes.thread_id_);
         odrv.system_stats_.prio_usb = osThreadGetPriority(usb_thread);
         odrv.system_stats_.prio_uart = osThreadGetPriority(uart_thread);
         odrv.system_stats_.prio_startup = osThreadGetPriority(defaultTaskHandle);
@@ -334,8 +312,8 @@ void vApplicationIdleHook(void)
  * This function is called after every current measurement of every motor.
  * It should finish as quickly as possible.
  * 
- * ÔËĞĞĞèÒª¾¡¿ÉÄÜÊµÊ±µÄÏµÍ³¼¶¼ì²é
- * Ã¿´Î²âÁ¿Ã¿Ì¨µç»úµÄµçÁ÷ºóµ÷ÓÃ´Ëº¯Êı¡£ËüÓ¦¸Ã¾¡¿ìÍê³É¡£
+ * è¿è¡Œéœ€è¦å°½å¯èƒ½å®æ—¶çš„ç³»ç»Ÿçº§æ£€æŸ¥
+ * æ¯æ¬¡æµ‹é‡æ¯å°ç”µæœºçš„ç”µæµåè°ƒç”¨æ­¤å‡½æ•°ã€‚å®ƒåº”è¯¥å°½å¿«å®Œæˆã€‚
  */
 void ODrive::do_fast_checks() {
     if (!(vbus_voltage >= config_.dc_bus_undervoltage_trip_level))
@@ -350,15 +328,13 @@ void ODrive::do_fast_checks() {
  * This should be called if a system level exception ocurred that makes it
  * unsafe to run power through the system in general.
  * 
- * ÏµÍ³ÉÏµÄËùÓĞµçÔ´ÏàÎ»£¨ËùÓĞµç»úºÍÖÆ¶¯µç×èÆ÷£©
- * Èç¹û·¢ÉúÏµÍ³¼¶Òì³£µ¼ÖÂËüÓ¦¸Ã±»µ÷ÓÃ,Ò»°ã¶øÑÔ£¬Í¨¹ıÏµÍ³¹©µçÊÇ²»°²È«µÄ¡£
+ * ç³»ç»Ÿä¸Šçš„æ‰€æœ‰ç”µæºç›¸ä½ï¼ˆæ‰€æœ‰ç”µæœºå’Œåˆ¶åŠ¨ç”µé˜»å™¨ï¼‰
+ * å¦‚æœå‘ç”Ÿç³»ç»Ÿçº§å¼‚å¸¸å¯¼è‡´å®ƒåº”è¯¥è¢«è°ƒç”¨,ä¸€èˆ¬è€Œè¨€ï¼Œé€šè¿‡ç³»ç»Ÿä¾›ç”µæ˜¯ä¸å®‰å…¨çš„ã€‚
  */
 void ODrive::disarm_with_error(Error error) 
 {
     CRITICAL_SECTION() {
-        for (auto& axis: axes) {
-            axis.motor_.disarm_with_error(Motor::ERROR_SYSTEM_LEVEL);
-        }
+            axes.motor_.disarm_with_error(Motor::ERROR_SYSTEM_LEVEL);
         safety_critical_disarm_brake_resistor();
         error_ |= error;
     }
@@ -382,23 +358,21 @@ void ODrive::disarm_with_error(Error error)
  * Time consuming and undeterministic logic/arithmetic should live on
  * control_loop_cb() instead.
  * 
- * ÔËĞĞ¶¨ÆÚ²ÉÑùÈÎÎñ
- * ËùÓĞĞèÒª²ÉÑùÕæÊµÊÀ½çÊı¾İµÄ×é¼ş¶¼Ó¦¸ÃÔÚÕâ×ö
- * ¹¦ÄÜ£¬ÒòÎªËüÔËĞĞÔÚ¸ßÖĞ¶ÏÓÅÏÈ¼¶ÉÏ²¢Ìá¹©¾¡¿ÉÄÜµÍµÄÖĞ¶Ï
- * ¶¨Ê±¶¶¶¯¡£
- * ´Ó´Ëº¯Êıµ÷ÓÃµÄËùÓĞº¯Êı¶¼Ó¦×ñÊØÒÔÏÂ¹æÔò£º
- * - ³¢ÊÔÔÚÃ¿´Îµü´úÖĞÊ¹ÓÃÏàÍ¬ÊıÁ¿µÄ CPU ÖÜÆÚ¡£Ô­Òò£ºº¯ÊıÖĞÉÔºóÔËĞĞµÄÈÎÎñÈÔÈ»ĞèÒª¾¡¿ÉÄÜµÍµÄÊ±Ğò¶¶¶¯£©
- * - Ê¹ÓÃ¾¡¿ÉÄÜÉÙµÄÖÜÆÚ¡££¨Ô­Òò£ºÖĞ¶Ï×èÈûÁËÆäËûÖØÒªµÄÖĞ¶Ï£¨TODO£ºÄÄĞ©£¿£©£©
- * - ²»µ÷ÓÃÈÎºÎ FreeRTOS º¯Êı¡£ £¨Ô­Òò£ºÖĞ¶ÏÓÅÏÈ¼¶¸ßÓÚÏµÍ³µ÷ÓÃµÄ×î´óÔÊĞíÓÅÏÈ¼¶£©
- *  ºÄÊ±ºÍ²»È·¶¨µÄÂß¼­/ËãÊõÓ¦¸Ã¼ÌĞø´æÔÚcontrol_loop_cb() ´úÌæ
+ * è¿è¡Œå®šæœŸé‡‡æ ·ä»»åŠ¡
+ * æ‰€æœ‰éœ€è¦é‡‡æ ·çœŸå®ä¸–ç•Œæ•°æ®çš„ç»„ä»¶éƒ½åº”è¯¥åœ¨è¿™åš
+ * åŠŸèƒ½ï¼Œå› ä¸ºå®ƒè¿è¡Œåœ¨é«˜ä¸­æ–­ä¼˜å…ˆçº§ä¸Šå¹¶æä¾›å°½å¯èƒ½ä½çš„ä¸­æ–­
+ * å®šæ—¶æŠ–åŠ¨ã€‚
+ * ä»æ­¤å‡½æ•°è°ƒç”¨çš„æ‰€æœ‰å‡½æ•°éƒ½åº”éµå®ˆä»¥ä¸‹è§„åˆ™ï¼š
+ * - å°è¯•åœ¨æ¯æ¬¡è¿­ä»£ä¸­ä½¿ç”¨ç›¸åŒæ•°é‡çš„ CPU å‘¨æœŸã€‚åŸå› ï¼šå‡½æ•°ä¸­ç¨åè¿è¡Œçš„ä»»åŠ¡ä»ç„¶éœ€è¦å°½å¯èƒ½ä½çš„æ—¶åºæŠ–åŠ¨ï¼‰
+ * - ä½¿ç”¨å°½å¯èƒ½å°‘çš„å‘¨æœŸã€‚ï¼ˆåŸå› ï¼šä¸­æ–­é˜»å¡äº†å…¶ä»–é‡è¦çš„ä¸­æ–­ï¼ˆTODOï¼šå“ªäº›ï¼Ÿï¼‰ï¼‰
+ * - ä¸è°ƒç”¨ä»»ä½• FreeRTOS å‡½æ•°ã€‚ ï¼ˆåŸå› ï¼šä¸­æ–­ä¼˜å…ˆçº§é«˜äºç³»ç»Ÿè°ƒç”¨çš„æœ€å¤§å…è®¸ä¼˜å…ˆçº§ï¼‰
+ *  è€—æ—¶å’Œä¸ç¡®å®šçš„é€»è¾‘/ç®—æœ¯åº”è¯¥ç»§ç»­å­˜åœ¨control_loop_cb() ä»£æ›¿
  */
 void ODrive::sampling_cb() {
     n_evt_sampling_++;
 
     MEASURE_TIME(task_times_.sampling) {
-        for (auto& axis: axes) {
-            axis.encoder_.sample_now();
-        }
+            axes.encoder_.sample_now();
     }
 }
 
@@ -415,13 +389,13 @@ void ODrive::sampling_cb() {
  *        potentially missed timer update interrupts. Therefore this counter
  *        must not rely on any interrupts.
  * 
- * ÖÜÆÚĞÔÔËĞĞ¿ØÖÆÑ­»·
- * ¸Ãº¯ÊıÔÚµÍÓÅÏÈ¼¶ÖĞ¶ÏÖĞÖ´ĞĞ£¬ÔÊĞíµ÷ÓÃ CMSIS º¯Êı¡£
- * È»¶ø£¬ËüµÄÔËĞĞÓÅÏÈ¼¶¸ßÓÚÍ¨ĞÅ¹¤×÷
- * @param update_cnt£º¸üĞÂÊÂ¼şµÄÕæÊµ¼ÆÊı£¨16 Î»£©¡£Õâ¸öÊÇÓÃÀ´×öÊ±¼ä´Á¼ÆËãµÄ£¬Ãæ¶Ô
- * ¿ÉÄÜ´í¹ı¶¨Ê±Æ÷¸üĞÂÖĞ¶Ï¡£Òò´ËÕâ¸ö¹ñÌ¨
- * ²»µÃÒÀÀµÈÎºÎÖĞ¶Ï¡£ 
- * ´úÌæÒÔÇ°run_control_loopº¯Êı
+ * å‘¨æœŸæ€§è¿è¡Œæ§åˆ¶å¾ªç¯
+ * è¯¥å‡½æ•°åœ¨ä½ä¼˜å…ˆçº§ä¸­æ–­ä¸­æ‰§è¡Œï¼Œå…è®¸è°ƒç”¨ CMSIS å‡½æ•°ã€‚
+ * ç„¶è€Œï¼Œå®ƒçš„è¿è¡Œä¼˜å…ˆçº§é«˜äºé€šä¿¡å·¥ä½œ
+ * @param update_cntï¼šæ›´æ–°äº‹ä»¶çš„çœŸå®è®¡æ•°ï¼ˆ16 ä½ï¼‰ã€‚è¿™ä¸ªæ˜¯ç”¨æ¥åšæ—¶é—´æˆ³è®¡ç®—çš„ï¼Œé¢å¯¹
+ * å¯èƒ½é”™è¿‡å®šæ—¶å™¨æ›´æ–°ä¸­æ–­ã€‚å› æ­¤è¿™ä¸ªæŸœå°
+ * ä¸å¾—ä¾èµ–ä»»ä½•ä¸­æ–­ã€‚ 
+ * ä»£æ›¿ä»¥å‰run_control_loopå‡½æ•°
  */
 void ODrive::control_loop_cb(uint32_t timestamp) 
 {
@@ -429,7 +403,7 @@ void ODrive::control_loop_cb(uint32_t timestamp)
     n_evt_control_loop_++;
 
     // TODO: use a configurable component list for most of the following things
-    // ¶ÔÒÔÏÂ´ó²¿·ÖÊÂÇéÊ¹ÓÃ¿ÉÅäÖÃµÄ×é¼şÁĞ±í
+    // å¯¹ä»¥ä¸‹å¤§éƒ¨åˆ†äº‹æƒ…ä½¿ç”¨å¯é…ç½®çš„ç»„ä»¶åˆ—è¡¨
     MEASURE_TIME(task_times_.control_loop_misc) 
     {
         // Reset all output ports so that we are certain about the freshness of
@@ -438,111 +412,103 @@ void ODrive::control_loop_cb(uint32_t timestamp)
         // this safety check doesn't work.
         // TODO: maybe we should add a check to output ports that prevents
         // double-setting the value.
-        //ÖØÖÃËùÓĞÊä³ö¶Ë¿Ú£¬ÒÔ±ãÎÒÃÇÈ·¶¨
-        //ÎÒÃÇÊ¹ÓÃµÄËùÓĞÖµ¡£
-        //Èç¹ûÎÒÃÇÍü¼ÇÔÚÕâÀïÖØÖÃÒ»¸öÖµ£¬×î»µµÄÇé¿ö¾ÍÊÇ
-        //´Ë°²È«¼ì²é²»Æğ×÷ÓÃ¡£
-        // TODO: Ò²ĞíÎÒÃÇÓ¦¸Ã¶ÔÊä³ö¶Ë¿ÚÌí¼ÓÒ»¸ö¼ì²éÒÔ·ÀÖ¹
-        //Ë«ÖØÉèÖÃÖµ¡£
-        for (auto& axis: axes) 
+        //é‡ç½®æ‰€æœ‰è¾“å‡ºç«¯å£ï¼Œä»¥ä¾¿æˆ‘ä»¬ç¡®å®š
+        //æˆ‘ä»¬ä½¿ç”¨çš„æ‰€æœ‰å€¼ã€‚
+        //å¦‚æœæˆ‘ä»¬å¿˜è®°åœ¨è¿™é‡Œé‡ç½®ä¸€ä¸ªå€¼ï¼Œæœ€åçš„æƒ…å†µå°±æ˜¯
+        //æ­¤å®‰å…¨æ£€æŸ¥ä¸èµ·ä½œç”¨ã€‚
+        // TODO: ä¹Ÿè®¸æˆ‘ä»¬åº”è¯¥å¯¹è¾“å‡ºç«¯å£æ·»åŠ ä¸€ä¸ªæ£€æŸ¥ä»¥é˜²æ­¢
+        //åŒé‡è®¾ç½®å€¼ã€‚
         {
-            axis.acim_estimator_.slip_vel_.reset();
-            axis.acim_estimator_.stator_phase_vel_.reset();
-            axis.acim_estimator_.stator_phase_.reset();
-            axis.controller_.torque_output_.reset();
-            axis.encoder_.phase_.reset();
-            axis.encoder_.phase_vel_.reset();
-            axis.encoder_.pos_estimate_.reset();
-            axis.encoder_.vel_estimate_.reset();
-            axis.encoder_.pos_circular_.reset();
-            axis.motor_.Vdq_setpoint_.reset();
-            axis.motor_.Idq_setpoint_.reset();
-            axis.open_loop_controller_.Idq_setpoint_.reset();
-            axis.open_loop_controller_.Vdq_setpoint_.reset();
-            axis.open_loop_controller_.phase_.reset();
-            axis.open_loop_controller_.phase_vel_.reset();
-            axis.open_loop_controller_.total_distance_.reset();
-            axis.sensorless_estimator_.phase_.reset();
-            axis.sensorless_estimator_.phase_vel_.reset();
-            axis.sensorless_estimator_.vel_estimate_.reset();
+            axes.acim_estimator_.slip_vel_.reset();
+            axes.acim_estimator_.stator_phase_vel_.reset();
+            axes.acim_estimator_.stator_phase_.reset();
+            axes.controller_.torque_output_.reset();
+            axes.encoder_.phase_.reset();
+            axes.encoder_.phase_vel_.reset();
+            axes.encoder_.pos_estimate_.reset();
+            axes.encoder_.vel_estimate_.reset();
+            axes.encoder_.pos_circular_.reset();
+            axes.motor_.Vdq_setpoint_.reset();
+            axes.motor_.Idq_setpoint_.reset();
+            axes.open_loop_controller_.Idq_setpoint_.reset();
+            axes.open_loop_controller_.Vdq_setpoint_.reset();
+            axes.open_loop_controller_.phase_.reset();
+            axes.open_loop_controller_.phase_vel_.reset();
+            axes.open_loop_controller_.total_distance_.reset();
+            axes.sensorless_estimator_.phase_.reset();
+            axes.sensorless_estimator_.phase_vel_.reset();
+            axes.sensorless_estimator_.vel_estimate_.reset();
         }
 
         uart_poll();
         odrv.oscilloscope_.update();
     }
 
-    for (auto& axis : axes) 
-    {// ¼«ÏŞÎ»ÖÃ¼ì²â
-        MEASURE_TIME(axis.task_times_.endstop_update) 
+    {// æé™ä½ç½®æ£€æµ‹
+        MEASURE_TIME(axes.task_times_.endstop_update) 
         {
-            axis.min_endstop_.update();
-            axis.max_endstop_.update();
+            axes.min_endstop_.update();
+            axes.max_endstop_.update();
         }
     }
 
     MEASURE_TIME(task_times_.control_loop_checks) 
     {
-        for (auto& axis: axes) 
-        {
-            // look for errors at axis level and also all subcomponents ¼ì²éÓĞÃ»ÓĞ³ö´í
-            bool checks_ok = axis.do_checks(timestamp);
+            // look for errors at axis level and also all subcomponents æ£€æŸ¥æœ‰æ²¡æœ‰å‡ºé”™
+            bool checks_ok = axes.do_checks(timestamp);
 
-            // make sure the watchdog is being fed.  Î¹¹·
-            bool watchdog_ok = axis.watchdog_check();
+            // make sure the watchdog is being fed.  å–‚ç‹—
+            bool watchdog_ok = axes.watchdog_check();
 
             if (!checks_ok || !watchdog_ok) {
-                axis.motor_.disarm();
+                axes.motor_.disarm();
             }
-        }
     }
 
-    for (auto& axis: axes) 
     {
         // Sub-components should use set_error which will propegate to this error_
-        // ¼ì²âÎÂ¶È
-        MEASURE_TIME(axis.task_times_.thermistor_update) 
+        // æ£€æµ‹æ¸©åº¦
+        MEASURE_TIME(axes.task_times_.thermistor_update) 
         {
-            axis.motor_.fet_thermistor_.update();// ÔÚ°å×ÓÉÏµÄÎÂ¶È´«¸ĞÆ÷
-            axis.motor_.motor_thermistor_.update();// µç»úÉÏµÄÎÂ¶È´«¸ĞÆ÷
+            axes.motor_.fet_thermistor_.update();// åœ¨æ¿å­ä¸Šçš„æ¸©åº¦ä¼ æ„Ÿå™¨
+            axes.motor_.motor_thermistor_.update();// ç”µæœºä¸Šçš„æ¸©åº¦ä¼ æ„Ÿå™¨
         }
 
-        MEASURE_TIME(axis.task_times_.encoder_update)
-            axis.encoder_.update();
+        MEASURE_TIME(axes.task_times_.encoder_update)
+            axes.encoder_.update();
     }
 
     // Controller of either axis might use the encoder estimate of the other
     // axis so we process both encoders before we continue.
 
-    for (auto& axis: axes) 
     {
-        MEASURE_TIME(axis.task_times_.sensorless_estimator_update)// Èç¹ûÊÇÎŞ´«¸ĞÆ÷. ¸üĞÂSensorlessEstimator
-            axis.sensorless_estimator_.update();
+        MEASURE_TIME(axes.task_times_.sensorless_estimator_update)// å¦‚æœæ˜¯æ— ä¼ æ„Ÿå™¨. æ›´æ–°SensorlessEstimator
+            axes.sensorless_estimator_.update();
 
-        MEASURE_TIME(axis.task_times_.controller_update) // ¿ØÖÆÆ÷¸üĞÂ
+        MEASURE_TIME(axes.task_times_.controller_update) // æ§åˆ¶å™¨æ›´æ–°
         {
-            // ¸ù¾İ¿ØÖÆ·½Ê½¸üĞÂtorque_setpoint_ vel_setpoint_ pos_setpoint_
-            if (!axis.controller_.update()) // uses position and velocity from encoder
+            // æ ¹æ®æ§åˆ¶æ–¹å¼æ›´æ–°torque_setpoint_ vel_setpoint_ pos_setpoint_
+            if (!axes.controller_.update()) // uses position and velocity from encoder
             { 
-                axis.error_ |= Axis::ERROR_CONTROLLER_FAILED;
+                axes.error_ |= Axis::ERROR_CONTROLLER_FAILED;
             }
         }
 
-        MEASURE_TIME(axis.task_times_.open_loop_controller_update)//¿ª»·¿ØÖÆ
-            axis.open_loop_controller_.update(timestamp);
+        MEASURE_TIME(axes.task_times_.open_loop_controller_update)//å¼€ç¯æ§åˆ¶
+            axes.open_loop_controller_.update(timestamp);
 
-        MEASURE_TIME(axis.task_times_.motor_update) // µç»úÅ¤¾Ø 
-            axis.motor_.update(timestamp); // uses torque from controller and phase_vel from encoder
+        MEASURE_TIME(axes.task_times_.motor_update) // ç”µæœºæ‰­çŸ© 
+            axes.motor_.update(timestamp); // uses torque from controller and phase_vel from encoder
 
-        MEASURE_TIME(axis.task_times_.current_controller_update)// µçÁ÷¿ØÖÆ
-            axis.motor_.current_control_.update(timestamp); // uses the output of controller_ or open_loop_contoller_ and encoder_ or sensorless_estimator_ or acim_estimator_
+        MEASURE_TIME(axes.task_times_.current_controller_update)// ç”µæµæ§åˆ¶
+            axes.motor_.current_control_.update(timestamp); // uses the output of controller_ or open_loop_contoller_ and encoder_ or sensorless_estimator_ or acim_estimator_
     }
 
     // Tell the axis threads that the control loop has finished
-    for (auto& axis: axes) 
     {
-        if (axis.thread_id_) 
+        if (axes.thread_id_) 
         {
-            osSignalSet(axis.thread_id_, 0x0001);
+            osSignalSet(axes.thread_id_, 0x0001);
         }
     }
 
@@ -550,7 +516,7 @@ void ODrive::control_loop_cb(uint32_t timestamp)
 }
 
 
-/** @brief For diagnostics only  ½öÓÃÓÚÕï¶Ï*/
+/** @brief For diagnostics only  ä»…ç”¨äºè¯Šæ–­*/
 uint32_t ODrive::get_interrupt_status(int32_t irqn) {
     if ((irqn < -14) || (irqn >= 240)) {
         return 0xffffffff;
@@ -589,7 +555,7 @@ uint32_t ODrive::get_dma_status(uint8_t stream_num) {
 }
 
 uint32_t ODrive::get_gpio_states() {
-    // TODO: get values that were sampled synchronously with the control loop »ñÈ¡Óë¿ØÖÆÑ­»·Í¬²½²ÉÑùµÄÖµ
+    // TODO: get values that were sampled synchronously with the control loop è·å–ä¸æ§åˆ¶å¾ªç¯åŒæ­¥é‡‡æ ·çš„å€¼
     uint32_t val = 0;
     for (size_t i = 0; i < GPIO_COUNT; ++i) {
         val |= ((gpios[i].read() ? 1UL : 0UL) << i);
@@ -598,81 +564,67 @@ uint32_t ODrive::get_gpio_states() {
 }
 
 /**
- * @brief Main thread started from main().  Ö÷Ïß³Ì´Ó main() ¿ªÊ¼¡£
+ * @brief Main thread started from main().  ä¸»çº¿ç¨‹ä» main() å¼€å§‹ã€‚
  */
 static void rtos_main(void*) {
-    // Init USB device ³õÊ¼»¯USBÉè±¸
+    // Init USB device åˆå§‹åŒ–USBè®¾å¤‡
     MX_USB_DEVICE_Init();
 
 
     // Start ADC for temperature measurements and user measurements
-    // Æô¶¯ ADC ½øĞĞÎÂ¶È²âÁ¿ºÍÓÃ»§²âÁ¿
+    // å¯åŠ¨ ADC è¿›è¡Œæ¸©åº¦æµ‹é‡å’Œç”¨æˆ·æµ‹é‡
     start_general_purpose_adc();
 
     //osDelay(100);
     // Init communications (this requires the axis objects to be constructed)
-    // ³õÊ¼»¯Í¨ĞÅ£¨ÕâĞèÒª¹¹½¨Öá¶ÔÏó£©
+    // åˆå§‹åŒ–é€šä¿¡ï¼ˆè¿™éœ€è¦æ„å»ºè½´å¯¹è±¡ï¼‰
     init_communication();
 
-    // Start pwm-in compare modules Æô¶¯ pwm-in ±È½ÏÄ£¿é
-    // must happen after communication is initialized  ±ØĞëÔÚÍ¨ĞÅ³õÊ¼»¯Ö®ºó
+    // Start pwm-in compare modules å¯åŠ¨ pwm-in æ¯”è¾ƒæ¨¡å—
+    // must happen after communication is initialized  å¿…é¡»åœ¨é€šä¿¡åˆå§‹åŒ–ä¹‹å
     pwm0_input.init();
 
     // Set up the CS pins for absolute encoders (TODO: move to GPIO init switch statement)
-    // Îª¾ø¶Ô±àÂëÆ÷ÉèÖÃ CS Òı½Å£¨TODO£ºÒÆÖÁ GPIO ³õÊ¼»¯ ÇĞ»»£©
-    for(auto& axis : axes){
-        if(axis.encoder_.config_.mode & Encoder::MODE_FLAG_ABS){
-            axis.encoder_.abs_spi_cs_pin_init();
+    // ä¸ºç»å¯¹ç¼–ç å™¨è®¾ç½® CS å¼•è„šï¼ˆTODOï¼šç§»è‡³ GPIO åˆå§‹åŒ– åˆ‡æ¢ï¼‰
+        if(axes.encoder_.config_.mode & Encoder::MODE_FLAG_ABS){
+            axes.encoder_.abs_spi_cs_pin_init();
         }
-    }
 
-    // Try to initialized gate drivers for fault-free startup.  ³¢ÊÔ³õÊ¼»¯Õ¤¼«Çı¶¯Æ÷ÒÔÊµÏÖÎŞ¹ÊÕÏÆô¶¯
-    // If this does not succeed, a fault will be raised and the idle loop will  Èç¹ûÕâ²»³É¹¦£¬½«Òı·¢´íÎó²¢ÇÒ¿ÕÏĞÑ­»·
-    // periodically attempt to reinit the gate driver. ¶¨ÆÚ³¢ÊÔÖØĞÂ³õÊ¼»¯Õ¤¼«Çı¶¯Æ÷¡£
-    for(auto& axis: axes){
-        axis.motor_.setup();
-    }
+    // Try to initialized gate drivers for fault-free startup.  å°è¯•åˆå§‹åŒ–æ …æé©±åŠ¨å™¨ä»¥å®ç°æ— æ•…éšœå¯åŠ¨
+    // If this does not succeed, a fault will be raised and the idle loop will  å¦‚æœè¿™ä¸æˆåŠŸï¼Œå°†å¼•å‘é”™è¯¯å¹¶ä¸”ç©ºé—²å¾ªç¯
+    // periodically attempt to reinit the gate driver. å®šæœŸå°è¯•é‡æ–°åˆå§‹åŒ–æ …æé©±åŠ¨å™¨ã€‚
+        axes.motor_.setup();
 
-    for(auto& axis: axes){
-        axis.encoder_.setup();
-    }
+        axes.encoder_.setup();
 
-    for(auto& axis: axes){
-        axis.acim_estimator_.idq_src_.connect_to(&axis.motor_.Idq_setpoint_);
-    }
+        axes.acim_estimator_.idq_src_.connect_to(&axes.motor_.Idq_setpoint_);
 
-    // Start PWM and enable adc interrupts/callbacks  Æô¶¯ PWM ²¢ÆôÓÃ adc ÖĞ¶Ï/»Øµ÷
+    // Start PWM and enable adc interrupts/callbacks  å¯åŠ¨ PWM å¹¶å¯ç”¨ adc ä¸­æ–­/å›è°ƒ
     start_adc_pwm();
     start_analog_thread();
 
-    // Wait for up to 2s for motor to become ready to allow for error-free ×î¶àµÈ´ı 2 Ãë£¬ÈÃµç»ú×¼±¸¾ÍĞ÷£¬ÒÔÈ·±£ÎŞ´íÎó
-    // startup. This delay gives the current sensor calibration time to Æô¶¯¡£´ËÑÓ³ÙÊ¹µçÁ÷´«¸ĞÆ÷Ğ£×¼Ê±¼ä
-    // converge. If the DRV chip is unpowered, the motor will not become ready ÊÕÁ²¡£Èç¹û DRV Ğ¾Æ¬Î´Í¨µç£¬µç»ú½«²»»á×¼±¸¾ÍĞ÷
+    // Wait for up to 2s for motor to become ready to allow for error-free æœ€å¤šç­‰å¾… 2 ç§’ï¼Œè®©ç”µæœºå‡†å¤‡å°±ç»ªï¼Œä»¥ç¡®ä¿æ— é”™è¯¯
+    // startup. This delay gives the current sensor calibration time to å¯åŠ¨ã€‚æ­¤å»¶è¿Ÿä½¿ç”µæµä¼ æ„Ÿå™¨æ ¡å‡†æ—¶é—´
+    // converge. If the DRV chip is unpowered, the motor will not become ready æ”¶æ•›ã€‚å¦‚æœ DRV èŠ¯ç‰‡æœªé€šç”µï¼Œç”µæœºå°†ä¸ä¼šå‡†å¤‡å°±ç»ª
     // but we still enter idle state.
-    for (size_t i = 0; i < 2000; ++i) {
-        bool motors_ready = std::all_of(axes.begin(), axes.end(), [](auto& axis) {
-            return axis.motor_.current_meas_.has_value();
-        });
-        if (motors_ready) {
+    for (size_t i = 0; i < 2000; ++i) 
+    {
+        if (axes.motor_.current_meas_.has_value()) {
             break;
         }
         osDelay(1);
     }
 
-    for (auto& axis: axes) {
-        axis.sensorless_estimator_.error_ &= ~SensorlessEstimator::ERROR_UNKNOWN_CURRENT_MEASUREMENT;
-    }
+        axes.sensorless_estimator_.error_ &= ~SensorlessEstimator::ERROR_UNKNOWN_CURRENT_MEASUREMENT;
 
-    // Start state machine threads. Each thread will go through various calibration Æô¶¯×´Ì¬»úÏß³Ì¡£Ã¿¸öÏß³Ì¶¼»á¾­¹ı¸÷ÖÖĞ£×¼
-    // procedures and then run the actual controller loops. ³ÌĞò£¬È»ºóÔËĞĞÊµ¼ÊµÄ¿ØÖÆÆ÷Ñ­»·¡£
-    // TODO: generalize for AXIS_COUNT != 2 TODO£º¹éÄÉÎª AXIS_COUNT != 2
-    for (size_t i = 0; i < AXIS_COUNT; ++i) {
-        axes[i].start_thread();
-    }
+    // Start state machine threads. Each thread will go through various calibration å¯åŠ¨çŠ¶æ€æœºçº¿ç¨‹ã€‚æ¯ä¸ªçº¿ç¨‹éƒ½ä¼šç»è¿‡å„ç§æ ¡å‡†
+    // procedures and then run the actual controller loops. ç¨‹åºï¼Œç„¶åè¿è¡Œå®é™…çš„æ§åˆ¶å™¨å¾ªç¯ã€‚
+    // TODO: generalize for AXIS_COUNT != 2 TODOï¼šå½’çº³ä¸º AXIS_COUNT != 2
+        axes.start_thread();
 
     odrv.system_stats_.fully_booted = true;
 
-    // Main thread finished starting everything and can delete itself now (yes this is legal). Ö÷Ïß³ÌÍê³ÉËùÓĞµÄÆô¶¯£¬ÏÖÔÚ¿ÉÒÔÉ¾³ıËü×Ô¼º£¨ÊÇµÄ£¬ÕâÊÇºÏ·¨µÄ£©¡£
+    // Main thread finished starting everything and can delete itself now (yes this is legal). ä¸»çº¿ç¨‹å®Œæˆæ‰€æœ‰çš„å¯åŠ¨ï¼Œç°åœ¨å¯ä»¥åˆ é™¤å®ƒè‡ªå·±ï¼ˆæ˜¯çš„ï¼Œè¿™æ˜¯åˆæ³•çš„ï¼‰ã€‚
     vTaskDelete(defaultTaskHandle);
 }
 
@@ -680,7 +632,7 @@ static void rtos_main(void*) {
  * @brief Carries out early startup tasks that need to run before any static
  * initializers.
  * This function gets called from the startup assembly code.
- * Ö´ĞĞĞèÒªÔÚÈÎºÎ¾²Ì¬Ö®Ç°ÔËĞĞµÄÔçÆÚÆô¶¯ÈÎÎñ
+ * æ‰§è¡Œéœ€è¦åœ¨ä»»ä½•é™æ€ä¹‹å‰è¿è¡Œçš„æ—©æœŸå¯åŠ¨ä»»åŠ¡
  */
 extern "C" void early_start_checks(void) {
     if(_reboot_cookie == 0xDEADFE75) {
@@ -745,13 +697,13 @@ extern "C" int main(void) {
     }
     serial_number_str[12] = 0;
 
-    // Init low level system functions (clocks, flash interface) ×îµÍÏµÍ³Æô¶¯
+    // Init low level system functions (clocks, flash interface) æœ€ä½ç³»ç»Ÿå¯åŠ¨
     system_init();
 
     // Load configuration from NVM. This needs to happen after system_init()
     // since the flash interface must be initialized and before board_init()
     // since board initialization can depend on the config.
-    // »ñÈ¡ÅäÖÃ
+    // è·å–é…ç½®
     size_t config_size = 0;
     bool success = config_manager.start_load()
             && config_read_all()
@@ -769,12 +721,12 @@ extern "C" int main(void) {
             || (odrv.config_.enable_uart_b && !uart_b)
             || (odrv.config_.enable_uart_c && !uart_c);
 
-    // Init board-specific peripherals  ³õÊ¼»¯°åÌØ¶¨µÄÍâÉè
+    // Init board-specific peripherals  åˆå§‹åŒ–æ¿ç‰¹å®šçš„å¤–è®¾
     if (!board_init()) {
         for (;;); // TODO: handle properly
     }
 
-    // Init GPIOs according to their configured mode  ¸ù¾İÅäÖÃµÄÄ£Ê½³õÊ¼»¯ GPIO
+    // Init GPIOs according to their configured mode  æ ¹æ®é…ç½®çš„æ¨¡å¼åˆå§‹åŒ– GPIO
     for (size_t i = 0; i < GPIO_COUNT; ++i) {
         // Skip unavailable GPIOs
         if (!get_gpio(i)) {
@@ -912,11 +864,11 @@ extern "C" int main(void) {
     sem_usb_irq = osSemaphoreCreate(osSemaphore(sem_usb_irq), 1);
     osSemaphoreWait(sem_usb_irq, 0);
 
-    // Create an event queue for UART Îª UART ´´½¨Ò»¸öÊÂ¼ş¶ÓÁĞ
+    // Create an event queue for UART ä¸º UART åˆ›å»ºä¸€ä¸ªäº‹ä»¶é˜Ÿåˆ—
     osMessageQDef(uart_event_queue, 4, uint32_t);
     uart_event_queue = osMessageCreate(osMessageQ(uart_event_queue), NULL);
 
-    // Create an event queue for USB Îª USB ´´½¨Ò»¸öÊÂ¼ş¶ÓÁĞ
+    // Create an event queue for USB ä¸º USB åˆ›å»ºä¸€ä¸ªäº‹ä»¶é˜Ÿåˆ—
     osMessageQDef(usb_event_queue, 7, uint32_t);
     usb_event_queue = osMessageCreate(osMessageQ(usb_event_queue), NULL);
 
@@ -924,11 +876,11 @@ extern "C" int main(void) {
     sem_can = osSemaphoreCreate(osSemaphore(sem_can), 1);
     osSemaphoreWait(sem_can, 0);
 
-    // Create main thread  ´´½¨Ö÷Ïß³Ì
+    // Create main thread  åˆ›å»ºä¸»çº¿ç¨‹
     osThreadDef(defaultTask, rtos_main, osPriorityNormal, 0, stack_size_default_task / sizeof(StackType_t));
     defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
-    // Start scheduler Æô¶¯µ÷¶ÈÆ÷
+    // Start scheduler å¯åŠ¨è°ƒåº¦å™¨
     osKernelStart();
     
     for (;;);

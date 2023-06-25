@@ -28,8 +28,8 @@ void Controller::set_error(Error error)
 // Command Handling
 //--------------------------------
 
-// ¿ØÖÆÆ÷, ÒÆ¶¯µ½Ò»¸öÎ»ÖÃ
-// µ÷ÓÃÁË¼ÓËÙÄ£ĞÍÀïµÄËã·¨. Ëã·¨ĞŞ¸ÄÁËTf_ Xi_ Xf_ Vi_ yAccel_  ÓÉtrap_traj_×Ô¼ºÎ¬»¤
+// æ§åˆ¶å™¨, ç§»åŠ¨åˆ°ä¸€ä¸ªä½ç½®
+// è°ƒç”¨äº†åŠ é€Ÿæ¨¡å‹é‡Œçš„ç®—æ³•. ç®—æ³•ä¿®æ”¹äº†Tf_ Xi_ Xf_ Vi_ yAccel_  ç”±trap_traj_è‡ªå·±ç»´æŠ¤
 void Controller::move_to_pos(float goal_point) 
 {
     axis_->trap_traj_.planTrapezoidal(goal_point, pos_setpoint_, vel_setpoint_,
@@ -40,18 +40,18 @@ void Controller::move_to_pos(float goal_point)
     trajectory_done_ = false;
 }
 
-// ÔöÁ¿ÔËĞĞ
-// @param: displacement Î»ÒÆÁ¿
-// @param: from_input_pos ÊÇ·ñÎªÊäÈëÁ¿
+// å¢é‡è¿è¡Œ
+// @param: displacement ä½ç§»é‡
+// @param: from_input_pos æ˜¯å¦ä¸ºè¾“å…¥é‡
 void Controller::move_incremental(float displacement, bool from_input_pos = true)
 {
-    if(from_input_pos)// ÊÇÊäÈë
+    if(from_input_pos)// æ˜¯è¾“å…¥
     {
-        input_pos_ += displacement; // Ôö¼ÓÔö¼ÓÒ»¸öÎ»ÒÆÁ¿
+        input_pos_ += displacement; // å¢åŠ å¢åŠ ä¸€ä¸ªä½ç§»é‡
     } 
     else
     {
-        input_pos_ = pos_setpoint_ + displacement; // ·ñÔò, pos_setpoint_+displacement ¾ø¶ÔÎ»ÒÆ.
+        input_pos_ = pos_setpoint_ + displacement; // å¦åˆ™, pos_setpoint_+displacement ç»å¯¹ä½ç§».
     }
 
     input_pos_updated();
@@ -102,18 +102,18 @@ bool Controller::anticogging_calibration(float pos_estimate, float vel_estimate)
     }
 }
 
-// ÉèÖÃÊäÈëÎ»ÖÃ
+// è®¾ç½®è¾“å…¥ä½ç½®
 void Controller::set_input_pos_and_steps(float const pos) 
 {
     input_pos_ = pos;
     if (config_.circular_setpoints) 
     {
-        // Èç¹ûÑ­»·Î»ÖÃÄ£Ê½, ÇóÄ£
+        // å¦‚æœå¾ªç¯ä½ç½®æ¨¡å¼, æ±‚æ¨¡
         float const range = config_.circular_setpoint_range;
         axis_->steps_ = (int64_t)(fmodf_pos(pos, range) / range * config_.steps_per_circular_range);
     } else 
     {
-        // ÆÕÍ¨Î»ÖÃÄ£Ê½,Ö±½Ó¸ø³ö steps_
+        // æ™®é€šä½ç½®æ¨¡å¼,ç›´æ¥ç»™å‡º steps_
         axis_->steps_ = (int64_t)(pos * config_.steps_per_circular_range);
     }
 }
@@ -138,7 +138,7 @@ bool Controller::control_mode_updated()
 
 void Controller::update_filter_gains() {
     // input_filter_bandwidth = 2
-    float bandwidth = std::min(config_.input_filter_bandwidth, 0.25f * current_meas_hz);// ×îºóÑ¡ÔñµÄÊÇ2
+    float bandwidth = std::min(config_.input_filter_bandwidth, 0.25f * current_meas_hz);// æœ€åé€‰æ‹©çš„æ˜¯2
     // 4
     input_filter_ki_ = 2.0f * bandwidth;  // basic conversion to discrete time 2*2=4
     // 16*0.25=4
@@ -161,11 +161,11 @@ bool Controller::update()
     std::optional<float> anticogging_pos_estimate = axis_->encoder_.pos_estimate_.present();
     std::optional<float> anticogging_vel_estimate = axis_->encoder_.vel_estimate_.present();
 
-    if (axis_->step_dir_active_) // Èç¹ûÊÇ²½½øÄ£Ê½. ¾ÍÊÇÊıÂö³åÄ£Ê½
+    if (axis_->step_dir_active_) // å¦‚æœæ˜¯æ­¥è¿›æ¨¡å¼. å°±æ˜¯æ•°è„‰å†²æ¨¡å¼
     {
-        if (config_.circular_setpoints) //Ñ­»·Î»ÖÃÄ£Ê½
+        if (config_.circular_setpoints) //å¾ªç¯ä½ç½®æ¨¡å¼
         {
-            if (!pos_wrap.has_value()) // Î»ÖÃ·¶Î§ÒÑ¾­Éè¶¨ 
+            if (!pos_wrap.has_value()) // ä½ç½®èŒƒå›´å·²ç»è®¾å®š 
             {
                 set_error(ERROR_INVALID_CIRCULAR_RANGE);
                 return false;
@@ -174,7 +174,7 @@ bool Controller::update()
         } 
         else 
         {
-            // µÃµ½Î»ÖÃ
+            // å¾—åˆ°ä½ç½®
             input_pos_ = (float)(axis_->steps_) / (float)(config_.steps_per_circular_range); 
         }
     }
@@ -192,10 +192,10 @@ bool Controller::update()
     }
 
     // TODO also enable circular deltas for 2nd order filter, etc.
-    // Èç¹ûÓĞÎ»ÖÃÏŞÖÆ,ÉèÖÃÎ»ÖÃÏŞÖÆ. Õâ¸öÔÚ»·ĞÎ¿ØÖÆ»áÓĞ
+    // å¦‚æœæœ‰ä½ç½®é™åˆ¶,è®¾ç½®ä½ç½®é™åˆ¶. è¿™ä¸ªåœ¨ç¯å½¢æ§åˆ¶ä¼šæœ‰
     if (config_.circular_setpoints) 
     {
-        if (!pos_wrap.has_value()) // ºÍÂö³åÄ£Ê½×öÁËÒ»ÑùµÄ´¦Àí
+        if (!pos_wrap.has_value()) // å’Œè„‰å†²æ¨¡å¼åšäº†ä¸€æ ·çš„å¤„ç†
         {
             set_error(ERROR_INVALID_CIRCULAR_RANGE);
             return false;
@@ -207,42 +207,42 @@ bool Controller::update()
     switch (config_.input_mode) 
     {
         case INPUT_MODE_INACTIVE: {
-            // do nothing ²»¶¯
+            // do nothing ä¸åŠ¨
         } break;
         case INPUT_MODE_PASSTHROUGH: 
         {
-            // Ö»ÓĞÔÚpassthourgh µÄÊ±ºò. input_pos = pos_setpoint
-            // Ò²¾ÍÊÇÕı³£Çé¿öÏÂ, Ó¦¸Ãµ÷ÓÃpos_setpoint??
+            // åªæœ‰åœ¨passthourgh çš„æ—¶å€™. input_pos = pos_setpoint
+            // ä¹Ÿå°±æ˜¯æ­£å¸¸æƒ…å†µä¸‹, åº”è¯¥è°ƒç”¨pos_setpoint??
             pos_setpoint_ = input_pos_;
             vel_setpoint_ = input_vel_;
             torque_setpoint_ = input_torque_; 
         } break;
-        case INPUT_MODE_VEL_RAMP: // ×ªËÙÅÀÉı¿ØÖÆÄ£Ê½
+        case INPUT_MODE_VEL_RAMP: // è½¬é€Ÿçˆ¬å‡æ§åˆ¶æ¨¡å¼
         {
-            // ×ªËÙÅÀÉıËÙ¶È axis.controller.config.vel_ramp_rate = 0.5 [turn/s^2]
+            // è½¬é€Ÿçˆ¬å‡é€Ÿåº¦ axis.controller.config.vel_ramp_rate = 0.5 [turn/s^2]
             // 
-            float max_step_size = std::abs(current_meas_period * config_.vel_ramp_rate);//vel_ramp_rateÄ¬ÈÏÎª1
+            float max_step_size = std::abs(current_meas_period * config_.vel_ramp_rate);//vel_ramp_rateé»˜è®¤ä¸º1
             float full_step = input_vel_ - vel_setpoint_;
             float step = std::clamp(full_step, -max_step_size, max_step_size);
 
             vel_setpoint_ += step;
             // Keep in mind this will need to change with the load / mass
-            torque_setpoint_ = (step / current_meas_period) * config_.inertia;// config_.inertia Ä¬ÈÏÎª0 
+            torque_setpoint_ = (step / current_meas_period) * config_.inertia;// config_.inertia é»˜è®¤ä¸º0 
         } break;
-        case INPUT_MODE_TORQUE_RAMP: // ×ª¾àÅÀÉı¿ØÖÆ
+        case INPUT_MODE_TORQUE_RAMP: // è½¬è·çˆ¬å‡æ§åˆ¶
         {
-            float max_step_size = std::abs(current_meas_period * config_.torque_ramp_rate);//torque_ramp_rateÄ¬ÈÏÎª0.1
+            float max_step_size = std::abs(current_meas_period * config_.torque_ramp_rate);//torque_ramp_rateé»˜è®¤ä¸º0.1
             float full_step = input_torque_ - torque_setpoint_;
             float step = std::clamp(full_step, -max_step_size, max_step_size);
 
             torque_setpoint_ += step;
         } break;
-        case INPUT_MODE_POS_FILTER: // Æ½»¬Î»ÖÃÄ£Ê½
+        case INPUT_MODE_POS_FILTER: // å¹³æ»‘ä½ç½®æ¨¡å¼
         {
-            // µ±Ê¹ÓÃÖ±½ÓÎ»ÖÃ¿ØÖÆÊ±ÓÉÓÚÊäÈëµÄÎ»ÖÃÖµÖ±½Ó¸³Óèµ½ ODrive ÖĞ£¬
-            // ËùÒÔÔË×ª»á²»¹»Æ½Ë³¡£¼´Ê¹Ê¹ÓÃÍâ²¿¿ØÖÆÆ÷Éú³ÉºÃµÄ¹ì¼£Î»ÖÃ£¬
-            // µ±Íâ²¿¿ØÖÆÆ÷ÒÔÒ»¶¨ÆµÂÊÏò ODrive ·¢ËÍÎ»ÖÃÖ¸ÁîÊ±Ä³Ğ©×´Ì¬ÏÂ»¹ÊÇ»á²»¹»Æ½»¬¡£
-            // ÕâÊ±ºòÊ¹ÓÃÆ½»¬Î»ÖÃ¿ØÖÆÄ£Ê½»áÊÇ²»´íµÄÑ¡Ôñ£¬ÍÆ¼ö½«ÊäÈëÂË²¨´ø¿íÉèÖÃÎªÎ»ÖÃÖ¸Áî·¢ËÍÆµÂÊµÄÒ»°ë¡£
+            // å½“ä½¿ç”¨ç›´æ¥ä½ç½®æ§åˆ¶æ—¶ç”±äºè¾“å…¥çš„ä½ç½®å€¼ç›´æ¥èµ‹äºˆåˆ° ODrive ä¸­ï¼Œ
+            // æ‰€ä»¥è¿è½¬ä¼šä¸å¤Ÿå¹³é¡ºã€‚å³ä½¿ä½¿ç”¨å¤–éƒ¨æ§åˆ¶å™¨ç”Ÿæˆå¥½çš„è½¨è¿¹ä½ç½®ï¼Œ
+            // å½“å¤–éƒ¨æ§åˆ¶å™¨ä»¥ä¸€å®šé¢‘ç‡å‘ ODrive å‘é€ä½ç½®æŒ‡ä»¤æ—¶æŸäº›çŠ¶æ€ä¸‹è¿˜æ˜¯ä¼šä¸å¤Ÿå¹³æ»‘ã€‚
+            // è¿™æ—¶å€™ä½¿ç”¨å¹³æ»‘ä½ç½®æ§åˆ¶æ¨¡å¼ä¼šæ˜¯ä¸é”™çš„é€‰æ‹©ï¼Œæ¨èå°†è¾“å…¥æ»¤æ³¢å¸¦å®½è®¾ç½®ä¸ºä½ç½®æŒ‡ä»¤å‘é€é¢‘ç‡çš„ä¸€åŠã€‚
             // 2nd order pos tracking filter
             float delta_pos = input_pos_ - pos_setpoint_; // Pos error
             if (config_.circular_setpoints) 
@@ -260,13 +260,11 @@ bool Controller::update()
             vel_setpoint_ += current_meas_period * accel; // delta vel
             pos_setpoint_ += current_meas_period * vel_setpoint_; // Delta pos
         } break;
-        case INPUT_MODE_MIRROR: //¾µÏñ
+        case INPUT_MODE_MIRROR: //é•œåƒ
         {
-            if (config_.axis_to_mirror < AXIS_COUNT) 
-            {
-                std::optional<float> other_pos = axes[config_.axis_to_mirror].encoder_.pos_estimate_.present();
-                std::optional<float> other_vel = axes[config_.axis_to_mirror].encoder_.vel_estimate_.present();
-                std::optional<float> other_torque = axes[config_.axis_to_mirror].controller_.torque_output_.present();
+                std::optional<float> other_pos = axes.encoder_.pos_estimate_.present();
+                std::optional<float> other_vel = axes.encoder_.vel_estimate_.present();
+                std::optional<float> other_torque = axes.controller_.torque_output_.present();
 
                 if (!other_pos.has_value() || !other_vel.has_value() || !other_torque.has_value()) 
                 {
@@ -277,33 +275,27 @@ bool Controller::update()
                 pos_setpoint_ = *other_pos * config_.mirror_ratio;
                 vel_setpoint_ = *other_vel * config_.mirror_ratio;
                 torque_setpoint_ = *other_torque * config_.torque_mirror_ratio;
-            } 
-            else 
-            {
-                set_error(ERROR_INVALID_MIRROR_AXIS);
-                return false;
-            }
         } break;
         // case INPUT_MODE_MIX_CHANNELS: {
         //     // NOT YET IMPLEMENTED
         // } break;
         case INPUT_MODE_TRAP_TRAJ: 
         {
-            if(input_pos_updated_)// Èç¹ûÄ¿±êÎ»ÖÃÓĞ±ä»¯
+            if(input_pos_updated_)// å¦‚æœç›®æ ‡ä½ç½®æœ‰å˜åŒ–
             {
-                move_to_pos(input_pos_);// ÉèÖÃÄ¿±êÎ»ÖÃ
+                move_to_pos(input_pos_);// è®¾ç½®ç›®æ ‡ä½ç½®
                 input_pos_updated_ = false;
             }
             // Avoid updating uninitialized trajectory
-            // Èç¹ûÎ»ÖÃÔËĞĞÒÑ¾­½áÊø,²»ÔÙ¼ÌĞøÔËĞĞ
+            // å¦‚æœä½ç½®è¿è¡Œå·²ç»ç»“æŸ,ä¸å†ç»§ç»­è¿è¡Œ
             if (trajectory_done_)
                 break;
             
-            if (axis_->trap_traj_.t_ > axis_->trap_traj_.Tf_) // Èç¹ûÔËĞĞÊ±³¤´óÓÚÈ«Ê±³¤. Í£Ö¹
+            if (axis_->trap_traj_.t_ > axis_->trap_traj_.Tf_) // å¦‚æœè¿è¡Œæ—¶é•¿å¤§äºå…¨æ—¶é•¿. åœæ­¢
             {
                 // Drop into position control mode when done to avoid problems on loop counter delta overflow
-                config_.control_mode = CONTROL_MODE_POSITION_CONTROL; // ½øÈëÎ»ÖÃ±£³ÖÄ£Ê½?
-                pos_setpoint_ = axis_->trap_traj_.Xf_; // ÉèÖÃµ±Ç°Î»ÖÃÎª ×îÖÕÔËĞĞÄ¿±ê
+                config_.control_mode = CONTROL_MODE_POSITION_CONTROL; // è¿›å…¥ä½ç½®ä¿æŒæ¨¡å¼?
+                pos_setpoint_ = axis_->trap_traj_.Xf_; // è®¾ç½®å½“å‰ä½ç½®ä¸º æœ€ç»ˆè¿è¡Œç›®æ ‡
                 vel_setpoint_ = 0.0f;
                 torque_setpoint_ = 0.0f;
                 trajectory_done_ = true;
@@ -320,8 +312,8 @@ bool Controller::update()
         } break;
         case INPUT_MODE_TUNING: 
         {
-            // CONTROL_MODE_POSITION_CONTROL Î»ÖÃÄ£Ê½, Î»ÖÃsine
-            // CONTROL_MODE_VELOCITY_CONTROL ËÙ¶ÈÄ£Ê½  ËÙ¶Èsine
+            // CONTROL_MODE_POSITION_CONTROL ä½ç½®æ¨¡å¼, ä½ç½®sine
+            // CONTROL_MODE_VELOCITY_CONTROL é€Ÿåº¦æ¨¡å¼  é€Ÿåº¦sine
             autotuning_phase_ = wrap_pm_pi(autotuning_phase_ + (2.0f * M_PI * autotuning_.frequency * current_meas_period));
             float c = our_arm_cos_f32(autotuning_phase_);
             float s = our_arm_sin_f32(autotuning_phase_);
@@ -336,15 +328,15 @@ bool Controller::update()
         
     }
 
-    // Position control Î»ÖÃ¿ØÖÆ
+    // Position control ä½ç½®æ§åˆ¶
     // TODO Decide if we want to use encoder or pll position here
     float gain_scheduling_multiplier = 1.0f;
-    float vel_des = vel_setpoint_;// ³õÊ¼»¯Ä¿±êËÙ¶È
+    float vel_des = vel_setpoint_;// åˆå§‹åŒ–ç›®æ ‡é€Ÿåº¦
     if (config_.control_mode >= CONTROL_MODE_POSITION_CONTROL) 
     {
         float pos_err;
 
-        if (config_.circular_setpoints) // Èç¹ûÊÇÈ¦Ä£Ê½
+        if (config_.circular_setpoints) // å¦‚æœæ˜¯åœˆæ¨¡å¼
         {
             if (!pos_estimate_circular.has_value() || !pos_wrap.has_value()) 
             {
@@ -352,49 +344,49 @@ bool Controller::update()
                 return false;
             }
             // Keep pos setpoint from drifting
-            pos_setpoint_ = fmodf_pos(pos_setpoint_, *pos_wrap);// ¼ÆËã¾ø¶ÔÈ¦
+            pos_setpoint_ = fmodf_pos(pos_setpoint_, *pos_wrap);// è®¡ç®—ç»å¯¹åœˆ
             // Circular delta
-            pos_err = pos_setpoint_ - *pos_estimate_circular; // ¼ÆËãºÍÄ¿±êÎ»ÖÃµÄ²îÖµ
+            pos_err = pos_setpoint_ - *pos_estimate_circular; // è®¡ç®—å’Œç›®æ ‡ä½ç½®çš„å·®å€¼
             pos_err = wrap_pm(pos_err, *pos_wrap);
         } 
         else 
         {
-            // ÆÕÍ¨µÄÎ»ÖÃÄ£Ê½
+            // æ™®é€šçš„ä½ç½®æ¨¡å¼
             if (!pos_estimate_linear.has_value()) 
             {
                 set_error(ERROR_INVALID_ESTIMATE);
                 return false;
             }
-            // µ±Ç°ÉèÖÃÎ»ÖÃ-´«¸ĞÆ÷Î»ÖÃ
-            pos_err = pos_setpoint_ - *pos_estimate_linear;//pos_estimate_linear=ax->encoder_.pos_estimate_  ÓÉ´«¸ĞÆ÷·µ»ØµÄÎ»ÖÃ
+            // å½“å‰è®¾ç½®ä½ç½®-ä¼ æ„Ÿå™¨ä½ç½®
+            pos_err = pos_setpoint_ - *pos_estimate_linear;//pos_estimate_linear=ax->encoder_.pos_estimate_  ç”±ä¼ æ„Ÿå™¨è¿”å›çš„ä½ç½®
         }
 
-        vel_des += config_.pos_gain * pos_err; // ÇóµÃ±äËÙ pos_gain=30ÓÉ×Ô¼ºÉèÖÃ µÃµ½µÄerrorÎªÈ¦Öµ.²»ÊÇÂö³åÖµ
+        vel_des += config_.pos_gain * pos_err; // æ±‚å¾—å˜é€Ÿ pos_gain=30ç”±è‡ªå·±è®¾ç½® å¾—åˆ°çš„errorä¸ºåœˆå€¼.ä¸æ˜¯è„‰å†²å€¼
         // V-shaped gain shedule based on position error
         float abs_pos_err = std::abs(pos_err);
-        if (config_.enable_gain_scheduling && abs_pos_err <= config_.gain_scheduling_width) //ÀïÃæ²»ÔËĞĞ
+        if (config_.enable_gain_scheduling && abs_pos_err <= config_.gain_scheduling_width) //é‡Œé¢ä¸è¿è¡Œ
         {
             gain_scheduling_multiplier = abs_pos_err / config_.gain_scheduling_width;
         }
     }
 
-    // Velocity limiting ËÙ¶ÈÏŞÖÆ ¼ì²âvel_desÓĞÃ»ÓĞ³¬ËÙ¶È·¶Î§
+    // Velocity limiting é€Ÿåº¦é™åˆ¶ æ£€æµ‹vel_desæœ‰æ²¡æœ‰è¶…é€Ÿåº¦èŒƒå›´
     float vel_lim = config_.vel_limit;// vel_limit=50
     if (config_.enable_vel_limit) //true
     {
-        vel_des = std::clamp(vel_des, -vel_lim, vel_lim);//ÉèÖÃËÙ¶ÈÎª+- 50Ö®¼ä
+        vel_des = std::clamp(vel_des, -vel_lim, vel_lim);//è®¾ç½®é€Ÿåº¦ä¸º+- 50ä¹‹é—´
     }
 
     // Check for overspeed fault (done in this module (controller) for cohesion with vel_lim)
-    // ³¬ËÙ³ö´íÍ£Ö¹
-    if (config_.enable_overspeed_error) // ¼ì²âoverspeed
+    // è¶…é€Ÿå‡ºé”™åœæ­¢
+    if (config_.enable_overspeed_error) // æ£€æµ‹overspeed
     {  
-        if (!vel_estimate.has_value()) //encoder¼ì²âµ½µÄËÙ¶È
+        if (!vel_estimate.has_value()) //encoderæ£€æµ‹åˆ°çš„é€Ÿåº¦
         {
             set_error(ERROR_INVALID_ESTIMATE);
             return false;
         }
-        if (std::abs(*vel_estimate) > config_.vel_limit_tolerance * vel_lim) // Èç¹ûÕâ¸öËÙ¶È³¬ÏŞ×î´óËÙ¶ÈµÄ1.2 Ò²¾ÍÊÇ60
+        if (std::abs(*vel_estimate) > config_.vel_limit_tolerance * vel_lim) // å¦‚æœè¿™ä¸ªé€Ÿåº¦è¶…é™æœ€å¤§é€Ÿåº¦çš„1.2 ä¹Ÿå°±æ˜¯60
         {
             set_error(ERROR_OVERSPEED);
             return false;
@@ -402,10 +394,10 @@ bool Controller::update()
     }
 
     // TODO: Change to controller working in torque units
-    // Torque per amp gain scheduling (ACIM) ½»Á÷¸ĞÓ¦µç»ú
+    // Torque per amp gain scheduling (ACIM) äº¤æµæ„Ÿåº”ç”µæœº
     float vel_gain = config_.vel_gain;// 0.02
     float vel_integrator_gain = config_.vel_integrator_gain;// 0.2
-    if (axis_->motor_.config_.motor_type == Motor::MOTOR_TYPE_ACIM) //²»Ö´ĞĞ
+    if (axis_->motor_.config_.motor_type == Motor::MOTOR_TYPE_ACIM) //ä¸æ‰§è¡Œ
     {
         float effective_flux = axis_->acim_estimator_.rotor_flux_;
         float minflux = axis_->motor_.config_.acim_gain_min_flux;
@@ -417,13 +409,13 @@ bool Controller::update()
         // (or again just do control in torque units)
     }
 
-    // Velocity control ËÙ¶È¿ØÖÆ
+    // Velocity control é€Ÿåº¦æ§åˆ¶
     float torque = torque_setpoint_;
 
     // Anti-cogging is enabled after calibration 
     // We get the current position and apply a current feed-forward
     // ensuring that we handle negative encoder positions properly (-1 == motor->encoder.encoder_cpr - 1)
-    // ÒÔÏÂ²»ÖªµÀÊ²Ã´Ê±ºòÔËĞĞ, µ«ÔËĞĞÎ»ÖÃÄ£Ê½Ê±²»ÔËĞĞ
+    // ä»¥ä¸‹ä¸çŸ¥é“ä»€ä¹ˆæ—¶å€™è¿è¡Œ, ä½†è¿è¡Œä½ç½®æ¨¡å¼æ—¶ä¸è¿è¡Œ
     if (anticogging_valid_ && config_.anticogging.anticogging_enabled) // anticogging_enabled=true anticogging_valid_=false
     {
         if (!anticogging_pos_estimate.has_value()) 
@@ -444,16 +436,16 @@ bool Controller::update()
             return false;
         }
 
-        v_err = vel_des - *vel_estimate;// ´«¸ĞÆ÷ËÙ¶ÈºÍÄ¿±êËÙ¶ÈµÃ²îÖµ
-        // gain_scheduling_multiplierÄ¬ÈÏÎª1. ¿´ÉÏÃæµÄ´úÂë.
-        // vel_gain = 0.02 ËÙ¶È»·Ôö¼ÓÖµÎª²îÖµµÄ0.02
-        torque += (vel_gain * gain_scheduling_multiplier) * v_err;// ĞŞ¸ÄÁ¦Öµ. ==> ±äÎªµç  
+        v_err = vel_des - *vel_estimate;// ä¼ æ„Ÿå™¨é€Ÿåº¦å’Œç›®æ ‡é€Ÿåº¦å¾—å·®å€¼
+        // gain_scheduling_multiplieré»˜è®¤ä¸º1. çœ‹ä¸Šé¢çš„ä»£ç .
+        // vel_gain = 0.02 é€Ÿåº¦ç¯å¢åŠ å€¼ä¸ºå·®å€¼çš„0.02
+        torque += (vel_gain * gain_scheduling_multiplier) * v_err;// ä¿®æ”¹åŠ›å€¼. ==> å˜ä¸ºç”µ  
 
-        // Velocity integral action before limiting Ôö¼ÓËÙ¶È²åÖµ
-        torque += vel_integrator_torque_; // 0.2 Ä¬ÈÏÔÙÔö¼Ó0.2µÄÁ¦¾àÖµ??
+        // Velocity integral action before limiting å¢åŠ é€Ÿåº¦æ’å€¼
+        torque += vel_integrator_torque_; // 0.2 é»˜è®¤å†å¢åŠ 0.2çš„åŠ›è·å€¼??
     }
 
-    // Velocity limiting in current mode Èç¹ûÖ±½ÓÉèÖÃ¾ÍÊÇÁ¦¾àÄ£Ê½, ¾ÍĞèÒª¿´Ò»ÏÂ,ÊÇ²»ÊÇ³¬ÏŞÖÆÁË
+    // Velocity limiting in current mode å¦‚æœç›´æ¥è®¾ç½®å°±æ˜¯åŠ›è·æ¨¡å¼, å°±éœ€è¦çœ‹ä¸€ä¸‹,æ˜¯ä¸æ˜¯è¶…é™åˆ¶äº†
     if (config_.control_mode < CONTROL_MODE_VELOCITY_CONTROL && config_.enable_torque_mode_vel_limit) 
     {
         if (!vel_estimate.has_value()) 
@@ -464,9 +456,9 @@ bool Controller::update()
         torque = limitVel(config_.vel_limit, *vel_estimate, vel_gain, torque);
     }
 
-    // Torque limiting Å¤¾ØÏŞÖÆ
+    // Torque limiting æ‰­çŸ©é™åˆ¶
     bool limited = false;
-    float Tlim = axis_->motor_.max_available_torque();//ÕÒµ½×î´óµÄÁ¦¾àÏŞÖÆ ²»³¬15
+    float Tlim = axis_->motor_.max_available_torque();//æ‰¾åˆ°æœ€å¤§çš„åŠ›è·é™åˆ¶ ä¸è¶…15
     if (torque > Tlim) 
     {
         limited = true;
@@ -478,39 +470,39 @@ bool Controller::update()
         torque = -Tlim;
     }
 
-    // Velocity integrator (behaviour dependent on limiting) ËÙ¶È»ı·Ö
-    if (config_.control_mode < CONTROL_MODE_VELOCITY_CONTROL) // Èç¹ûÖ»ÊÇÁ¦¾àÄ£Ê½ vel_integrator_torque_=0
+    // Velocity integrator (behaviour dependent on limiting) é€Ÿåº¦ç§¯åˆ†
+    if (config_.control_mode < CONTROL_MODE_VELOCITY_CONTROL) // å¦‚æœåªæ˜¯åŠ›è·æ¨¡å¼ vel_integrator_torque_=0
     {
         // reset integral if not in use
         vel_integrator_torque_ = 0.0f;
     } 
     else 
     {
-        if (limited) // Èç¹û³¬ÏŞ vel_integrator_torque_ ¼õÉÙ1%
+        if (limited) // å¦‚æœè¶…é™ vel_integrator_torque_ å‡å°‘1%
         {
             // TODO make decayfactor configurable
             vel_integrator_torque_ *= 0.99f;
         } 
-        else  // Õı³£µÄÏŞÖÆ ËÙ¶È²î*vel_integrator_gain(0.2)
+        else  // æ­£å¸¸çš„é™åˆ¶ é€Ÿåº¦å·®*vel_integrator_gain(0.2)
         {
             vel_integrator_torque_ += ((vel_integrator_gain * gain_scheduling_multiplier) * current_meas_period) * v_err;
         }
         // integrator limiting to prevent windup 
-        // µÃµ½vel_integrator_torque_  ×ö×î´óÖµÏŞÖÆ
+        // å¾—åˆ°vel_integrator_torque_  åšæœ€å¤§å€¼é™åˆ¶
         vel_integrator_torque_ = std::clamp(vel_integrator_torque_, -config_.vel_integrator_limit, config_.vel_integrator_limit);
     }
 
     float ideal_electrical_power = 0.0f;
-    if (axis_->motor_.config_.motor_type != Motor::MOTOR_TYPE_GIMBAL) // ÔÆÌ¨µç»ú
+    if (axis_->motor_.config_.motor_type != Motor::MOTOR_TYPE_GIMBAL) // äº‘å°ç”µæœº
     {
-        // ²»ÊÇÔÆÌ¨µç»ú. ¼ÆËã¾²Ö¹µÄµçÁ÷ phase_resistance=0.082 power_ = 12V*(Idq = mod_d * Id + mod_q * Iq)
+        // ä¸æ˜¯äº‘å°ç”µæœº. è®¡ç®—é™æ­¢çš„ç”µæµ phase_resistance=0.082 power_ = 12V*(Idq = mod_d * Id + mod_q * Iq)
         ideal_electrical_power = axis_->motor_.current_control_.power_ - \
             SQ(axis_->motor_.current_control_.Iq_measured_) * 1.5f * axis_->motor_.config_.phase_resistance - \
             SQ(axis_->motor_.current_control_.Id_measured_) * 1.5f * axis_->motor_.config_.phase_resistance;
     }
     else 
     {
-        // ÊÇÔÆÌ¨µç»ú, Ö±½Ó¸øcurrent_control_.power_
+        // æ˜¯äº‘å°ç”µæœº, ç›´æ¥ç»™current_control_.power_
         ideal_electrical_power = axis_->motor_.current_control_.power_;
     }
     mechanical_power_ += config_.mechanical_power_bandwidth * current_meas_period * (torque * *vel_estimate * M_PI * 2.0f - mechanical_power_);
@@ -527,7 +519,7 @@ bool Controller::update()
         return false;
     }
 
-    torque_output_ = torque;//µÃµ½×îºóµÄÁ¦
+    torque_output_ = torque;//å¾—åˆ°æœ€åçš„åŠ›
 
     // TODO: this is inconsistent with the other errors which are sticky.
     // However if we make ERROR_INVALID_ESTIMATE sticky then it will be

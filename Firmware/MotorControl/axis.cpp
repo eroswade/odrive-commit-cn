@@ -283,11 +283,10 @@ bool Axis::start_closed_loop_control() {
         } 
         else if (controller_.config_.load_encoder_axis < AXIS_COUNT)   // 处理有传感器的情况
         {
-            Axis* ax = &axes[controller_.config_.load_encoder_axis];
-            controller_.pos_estimate_circular_src_.connect_to(&ax->encoder_.pos_circular_);
+            controller_.pos_estimate_circular_src_.connect_to(&axes.encoder_.pos_circular_);
             controller_.pos_wrap_src_.connect_to(&controller_.config_.circular_setpoint_range);
-            controller_.pos_estimate_linear_src_.connect_to(&ax->encoder_.pos_estimate_);
-            controller_.vel_estimate_src_.connect_to(&ax->encoder_.vel_estimate_);
+            controller_.pos_estimate_linear_src_.connect_to(&axes.encoder_.pos_estimate_);
+            controller_.vel_estimate_src_.connect_to(&axes.encoder_.vel_estimate_);
         } 
         else // 失败??? 
         {

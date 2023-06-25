@@ -190,7 +190,7 @@ public:
     void sampling_cb();
     void control_loop_cb(uint32_t timestamp);
 
-    Axis& get_axis(int num) { return axes[num]; }
+    Axis& get_axis(int num) { return axes; }
 
     uint32_t get_interrupt_status(int32_t irqn);
     uint32_t get_dma_status(uint8_t stream_num);

@@ -79,9 +79,7 @@ osThreadId analog_thread = 0;
 // @brief Arms the brake resistor
 void safety_critical_arm_brake_resistor() {
     CRITICAL_SECTION() {
-        for (size_t i = 0; i < AXIS_COUNT; ++i) {
-            axes[i].motor_.I_bus_ = 0.0f;
-        }
+            axes.motor_.I_bus_ = 0.0f;
         brake_resistor_armed = true;
 #if HW_VERSION_MAJOR == 3
         htim2.Instance->CCR3 = 0;
@@ -107,9 +105,7 @@ void safety_critical_disarm_brake_resistor() {
 
     // Check necessary to prevent infinite recursion
     if (brake_resistor_was_armed) {
-        for (auto& axis: axes) {
-            axis.motor_.disarm();
-        }
+            axes.motor_.disarm();
     }
 }
 
@@ -139,25 +135,21 @@ void safety_critical_apply_brake_resistor_timings(uint32_t low_off, uint32_t hig
 
 void start_adc_pwm() {
     // Disarm motors
-    for (auto& axis: axes) {
-        axis.motor_.disarm();
-    }
+        axes.motor_.disarm();
 
-    for (Motor& motor: motors) {
         // Init PWM
         int half_load = TIM_1_8_PERIOD_CLOCKS / 2;
-        motor.timer_->Instance->CCR1 = half_load;
-        motor.timer_->Instance->CCR2 = half_load;
-        motor.timer_->Instance->CCR3 = half_load;
+        motors.timer_->Instance->CCR1 = half_load;
+        motors.timer_->Instance->CCR2 = half_load;
+        motors.timer_->Instance->CCR3 = half_load;
 
         // Enable PWM outputs (they are still masked by MOE though)
-        motor.timer_->Instance->CCER |= (TIM_CCx_ENABLE << TIM_CHANNEL_1);
-        motor.timer_->Instance->CCER |= (TIM_CCxN_ENABLE << TIM_CHANNEL_1);
-        motor.timer_->Instance->CCER |= (TIM_CCx_ENABLE << TIM_CHANNEL_2);
-        motor.timer_->Instance->CCER |= (TIM_CCxN_ENABLE << TIM_CHANNEL_2);
-        motor.timer_->Instance->CCER |= (TIM_CCx_ENABLE << TIM_CHANNEL_3);
-        motor.timer_->Instance->CCER |= (TIM_CCxN_ENABLE << TIM_CHANNEL_3);
-    }
+        motors.timer_->Instance->CCER |= (TIM_CCx_ENABLE << TIM_CHANNEL_1);
+        motors.timer_->Instance->CCER |= (TIM_CCxN_ENABLE << TIM_CHANNEL_1);
+        motors.timer_->Instance->CCER |= (TIM_CCx_ENABLE << TIM_CHANNEL_2);
+        motors.timer_->Instance->CCER |= (TIM_CCxN_ENABLE << TIM_CHANNEL_2);
+        motors.timer_->Instance->CCER |= (TIM_CCx_ENABLE << TIM_CHANNEL_3);
+        motors.timer_->Instance->CCER |= (TIM_CCxN_ENABLE << TIM_CHANNEL_3);
 
     // Enable ADC and interrupts
     __HAL_ADC_ENABLE(&hadc1);
@@ -187,11 +179,11 @@ void start_adc_pwm() {
 uint16_t adc_measurements_[ADC_CHANNEL_COUNT] = { 0 };
 
 // @brief Starts the general purpose ADC on the ADC1 peripheral.
-// The measured ADC voltages can be read with get_adc_voltage(). ADC µçÑ¹
-// ÈÈÃôµç×èºÍÓÃ»§ADC²É¼¯
+// The measured ADC voltages can be read with get_adc_voltage(). ADC ç”µåŽ‹
+// çƒ­æ•ç”µé˜»å’Œç”¨æˆ·ADCé‡‡é›†
 // ADC1 is set up to continuously sample all channels 0 to 15 in a
-// round-robin fashion. ACD1 Ñ­»·µ÷¶È0-15µÄ¼ì²â
-// DMA is used to copy the measured 12-bit values to adc_measurements_. DMA, ¿½±´¼ì²âÊý¾Ýµ½adc_measurements_
+// round-robin fashion. ACD1 å¾ªçŽ¯è°ƒåº¦0-15çš„æ£€æµ‹
+// DMA is used to copy the measured 12-bit values to adc_measurements_. DMA, æ‹·è´æ£€æµ‹æ•°æ®åˆ°adc_measurements_
 //
 // The injected (high priority) channel of ADC1 is used to sample vbus_voltage.
 // This conversion is triggered by TIM1 at the frequency of the motor control loop.
@@ -318,15 +310,13 @@ void vbus_sense_adc_cb(uint32_t adc_value) {
 }
 
 // @brief Sums up the Ibus contribution of each motor and updates the
-// brake resistor PWM accordingly. »Ø»·µçÁ÷
+// brake resistor PWM accordingly. å›žçŽ¯ç”µæµ
 void update_brake_current() 
 {
     float Ibus_sum = 0.0f;
-    for (size_t i = 0; i < AXIS_COUNT; ++i) {
-        if (axes[i].motor_.is_armed_) {
-            Ibus_sum += axes[i].motor_.I_bus_;
+        if (axes.motor_.is_armed_) {
+            Ibus_sum += axes.motor_.I_bus_;
         }
-    }
 
     float brake_duty = 0.0f;
     float brake_current = 0.0f;
@@ -384,7 +374,7 @@ void update_brake_current()
 }
 
 
-/* Analog speed control input ÒÔÏÂº¯Êý¶¼ÊÇ»ñÈ¡ÎÂ¶ÈµÄ */
+/* Analog speed control input ä»¥ä¸‹å‡½æ•°éƒ½æ˜¯èŽ·å–æ¸©åº¦çš„ */
 
 static void update_analog_endpoint(const struct PWMMapping_t *map, int gpio)
 {

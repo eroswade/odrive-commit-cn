@@ -45,7 +45,7 @@ class CANSimple {
 
    private:
 
-    bool renew_subscription(size_t i);
+    bool renew_subscription();
     bool send_heartbeat(const Axis& axis);
 
     void handle_can_message(const can_Message_t& msg);
@@ -98,12 +98,12 @@ class CANSimple {
     }
 
     CanBusBase* canbus_;
-    CanBusBase::CanSubscription* subscription_handles_[AXIS_COUNT];
+    CanBusBase::CanSubscription* subscription_handles_;
 
     // TODO: we this is a hack but actually we should use protocol hooks to
     // renew our filter when the node ID changes
-    uint32_t node_ids_[AXIS_COUNT];
-    bool extended_node_ids_[AXIS_COUNT];
+    uint32_t node_ids_;
+    bool extended_node_ids_;
 };
 
 #endif
