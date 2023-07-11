@@ -21,7 +21,8 @@ Motor::Error AlphaBetaFrameController::on_measurement(
     return on_measurement(vbus_voltage, Ialpha_beta, input_timestamp);
 }
 
-// ¼ÆËãFOC,»ñµÃPWM. ÓÃÀ´¿ØÖÆµç»ú×ª¶¯
+// è®¡ç®—FOC,è·å¾—PWM. ç”¨æ¥æ§åˆ¶ç”µæœºè½¬åŠ¨
+// @sa Motor::pwm_update_cb
 Motor::Error AlphaBetaFrameController::get_output(
             uint32_t output_timestamp, float (&pwm_timings)[3],
             std::optional<float>* ibus) 
@@ -38,7 +39,7 @@ Motor::Error AlphaBetaFrameController::get_output(
         return Motor::ERROR_MODULATION_IS_NAN;
     }
 
-    // ×ªSVPWM
+    // è½¬SVPWM
     auto [tA, tB, tC, success] = SVM(mod_alpha_beta->first, mod_alpha_beta->second);
     if (!success) {
         return Motor::ERROR_MODULATION_MAGNITUDE;
@@ -72,11 +73,14 @@ Motor::Error FieldOrientedController::on_measurement(
     return Motor::ERROR_NONE;
 }
 
+// è¿™é‡Œè®¡ç®—å‡ºæœ€åçš„ mod_alpha_beta   ç»™PWMä½¿ç”¨
+// @sa AlphaBetaFrameController::get_output
+// @sa Motor::pwm_update_cb
 ODriveIntf::MotorIntf::Error FieldOrientedController::get_alpha_beta_output(
         uint32_t output_timestamp, std::optional<float2D>* mod_alpha_beta,
         std::optional<float>* ibus) 
 {
-    // ²»ÄÜÔÚµç»úÎ´³õÊ¼»¯Çé¿öÏÂÔËĞĞÕâ¸öº¯Êı
+    // ä¸èƒ½åœ¨ç”µæœºæœªåˆå§‹åŒ–æƒ…å†µä¸‹è¿è¡Œè¿™ä¸ªå‡½æ•°
     if (!vbus_voltage_measured_.has_value() || !Ialpha_beta_measured_.has_value()) 
     {
         // FOC didn't receive a current measurement yet.
@@ -84,7 +88,7 @@ ODriveIntf::MotorIntf::Error FieldOrientedController::get_alpha_beta_output(
     } 
     else if (abs((int32_t)(i_timestamp_ - ctrl_timestamp_)) > MAX_CONTROL_LOOP_UPDATE_TO_CURRENT_UPDATE_DELTA) {
         // Data from control loop and current measurement are too far apart.
-        // ¼ì²âÊ±¼ä³¬Ê±
+        // æ£€æµ‹æ—¶é—´è¶…æ—¶
         return Motor::ERROR_BAD_TIMING;
     }
 
@@ -107,7 +111,7 @@ ODriveIntf::MotorIntf::Error FieldOrientedController::get_alpha_beta_output(
 
     std::optional<float2D> Idq;
 
-    // Park transform park±ä»»
+    // Park transform parkå˜æ¢
     if (Ialpha_beta_measured_.has_value()) 
     {
         auto [Ialpha, Ibeta] = *Ialpha_beta_measured_;
@@ -126,7 +130,7 @@ ODriveIntf::MotorIntf::Error FieldOrientedController::get_alpha_beta_output(
     }
 
 
-    float mod_to_V = (2.0f / 3.0f) * vbus_voltage;// 2/3µÄµçÑ¹
+    float mod_to_V = (2.0f / 3.0f) * vbus_voltage;// 2/3çš„ç”µå‹
     float V_to_mod = 1.0f / mod_to_V;
     float mod_d;
     float mod_q;
@@ -145,16 +149,16 @@ ODriveIntf::MotorIntf::Error FieldOrientedController::get_alpha_beta_output(
             return Motor::ERROR_UNKNOWN_CURRENT_COMMAND;
         }
 
-        // motor::update_current_controller_gains  ¼ÆËãpi_gains_
+        // motor::update_current_controller_gains  è®¡ç®—pi_gains_
         auto [p_gain, i_gain] = *pi_gains_;// p_gain=0.014 i_gain = 82.492 // PID
-        auto [Id, Iq] = *Idq;// ÉÏÃæpark±ä»»µÃµ½µÄ
-        auto [Id_setpoint, Iq_setpoint] = *Idq_setpoint_;// Õâ¸öÓÉMotor::update¼ÆËãµÃµ½
+        auto [Id, Iq] = *Idq;// ä¸Šé¢parkå˜æ¢å¾—åˆ°çš„
+        auto [Id_setpoint, Iq_setpoint] = *Idq_setpoint_;// è¿™ä¸ªç”±Motor::updateè®¡ç®—å¾—åˆ°
 
         float Ierr_d = Id_setpoint - Id;// setpoint - park(measure)
         float Ierr_q = Iq_setpoint - Iq;
 
         // Apply PI control (V{d,q}_setpoint act as feed-forward terms in this mode)
-        // v_current_control_integral_d_ ¿ÉÒÔ±»¼à¿Øµ½ 
+        // v_current_control_integral_d_ å¯ä»¥è¢«ç›‘æ§åˆ° 
         // Vd = 0 
         mod_d = V_to_mod * (Vd + v_current_control_integral_d_ + Ierr_d * p_gain);// p_gain=0.014
         mod_q = V_to_mod * (Vq + v_current_control_integral_q_ + Ierr_q * p_gain);
@@ -184,15 +188,15 @@ ODriveIntf::MotorIntf::Error FieldOrientedController::get_alpha_beta_output(
         mod_q = V_to_mod * Vq;
     }
 
-    // Inverse park transform ·´park±ä»»
+    // Inverse park transform åparkå˜æ¢
     float pwm_phase = phase + phase_vel * ((float)(int32_t)(output_timestamp - ctrl_timestamp_) / (float)TIM_1_8_CLOCK_HZ);
     float c_p = our_arm_cos_f32(pwm_phase);
     float s_p = our_arm_sin_f32(pwm_phase);
-    float mod_alpha = c_p * mod_d - s_p * mod_q;// ×¢ÒâÕâÀï³öµÄmod_alpha mod_betaºÍ final_v_alpha_µÄ¹ØÁª
+    float mod_alpha = c_p * mod_d - s_p * mod_q;// æ³¨æ„è¿™é‡Œå‡ºçš„mod_alpha mod_betaå’Œ final_v_alpha_çš„å…³è”
     float mod_beta = c_p * mod_q + s_p * mod_d;
 
     // Report final applied voltage in stationary frame (for sensorless estimator)
-    final_v_alpha_ = mod_to_V * mod_alpha;// 2/3µçÑ¹ÏÂµÄmod_alpha  ¿ÉÒÔ¹Û²ìµ½
+    final_v_alpha_ = mod_to_V * mod_alpha;// 2/3ç”µå‹ä¸‹çš„mod_alpha  å¯ä»¥è§‚å¯Ÿåˆ°
     final_v_beta_ = mod_to_V * mod_beta;
 
     *mod_alpha_beta = {mod_alpha, mod_beta};
@@ -214,7 +218,7 @@ void FieldOrientedController::update(uint32_t timestamp)
         enable_current_control_ = enable_current_control_src_;
         Idq_setpoint_ = Idq_setpoint_src_.present();// = motor_.Idq_setpoint_  = id,iq
         Vdq_setpoint_ = Vdq_setpoint_src_.present();//= motor_.Vdq_setpoint_ = vd,vq
-        phase_ = phase_src_.present();// encoder updateÏÂ¼ÆËã
-        phase_vel_ = phase_vel_src_.present(); // encoder updateÏÂ¼ÆËã
+        phase_ = phase_src_.present();// encoder updateä¸‹è®¡ç®—
+        phase_vel_ = phase_vel_src_.present(); // encoder updateä¸‹è®¡ç®—
     }
 }

@@ -638,7 +638,7 @@ extern "C" void early_start_checks(void) {
     if(_reboot_cookie == 0xDEADFE75) {
         /* The STM DFU bootloader enables internal pull-up resistors on PB10 (AUX_H)
         * and PB11 (AUX_L), thereby causing shoot-through on the brake resistor
-        * FETs and obliterating them unless external 3.3k pull-down resistors are
+        * FETs and wipe out them unless external 3.3k pull-down resistors are
         * present. Pull-downs are only present on ODrive 3.5 or newer.
         * On older boards we disable DFU by default but if the user insists
         * there's only one thing left that might save it: time.
@@ -721,6 +721,14 @@ extern "C" int main(void) {
             || (odrv.config_.enable_uart_b && !uart_b)
             || (odrv.config_.enable_uart_c && !uart_c);
 
+    // TIM1 tim8 168Mhz 
+    // 其它时钟  84MHZ
+    // TIM8 TIM1  168MHz/(3500*2) = 24KHz   因为是中间对齐，所以式子中要*2   period = TIM_1_8_PERIOD_CLOCKS
+    // TIM13 启动时和TIM1 TIM8同步， 任务耗时测量
+    // TIM14 1KHZ  HAL库时基
+    // TIM2  84M/(4096*2)=10.25KHz  | CH3(PB.10)和CH4(PB.11)作为pwm输出，耗散电阻 
+    // tim3 tim4  #1电机之旋编检测，计满到0xfffff  #2电机之旋编检测，计满到0xfffff
+    // tim5 定时器的CH3(PA.2)和CH4(PA.3)作为捕获输入口
     // Init board-specific peripherals  初始化板特定的外设
     if (!board_init()) {
         for (;;); // TODO: handle properly

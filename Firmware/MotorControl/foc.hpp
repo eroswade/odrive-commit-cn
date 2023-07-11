@@ -58,8 +58,8 @@ public:
     //float mod_d_ = 0.0f;
     //float mod_q_ = 0.0f;
     //float ibus_ = 0.0f;
-    float final_v_alpha_ = 0.0f; // [V] 2/3电压下的mod_alpha
-    float final_v_beta_ = 0.0f; // [V] 2/3电压下的mod_beta
+    float final_v_alpha_ = 0.0f; // [V] 2/3鐢靛帇涓嬬殑mod_alpha
+    float final_v_beta_ = 0.0f; // [V] 2/3鐢靛帇涓嬬殑mod_beta
     float power_ = 0.0f; // [W] dot product of Vdq and Idq
 };
 

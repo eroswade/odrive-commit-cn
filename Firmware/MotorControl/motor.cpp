@@ -765,6 +765,8 @@ void Motor::dc_calib_cb(uint32_t timestamp, std::optional<Iph_ABC_t> current)
 }
 
 // PWM回调 也是在board.cpp的ControlLoop_IRQHandler里调用
+// get_output 获取 pwm_timings  
+// 
 void Motor::pwm_update_cb(uint32_t output_timestamp) 
 {
     TaskTimerContext tmr{axis_->task_times_.pwm_update};
@@ -789,7 +791,8 @@ void Motor::pwm_update_cb(uint32_t output_timestamp)
             (uint16_t)(pwm_timings[2] * (float)TIM_1_8_PERIOD_CLOCKS)
         };
         apply_pwm_timings(next_timings, false);
-    } else if (is_armed_) 
+    } 
+    else if (is_armed_) 
     {
         if (!(timer_->Instance->BDTR & TIM_BDTR_MOE) && (control_law_status == ERROR_CONTROLLER_INITIALIZING)) 
         {

@@ -231,7 +231,8 @@ void system_init() {
     }
 }
 
-bool board_init() {
+bool board_init() 
+{
     // Initialize all configured peripherals
     MX_GPIO_Init();
     MX_DMA_Init();
