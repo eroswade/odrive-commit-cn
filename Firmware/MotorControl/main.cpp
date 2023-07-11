@@ -729,6 +729,7 @@ extern "C" int main(void) {
     // TIM2  84M/(4096*2)=10.25KHz  | CH3(PB.10)和CH4(PB.11)作为pwm输出，耗散电阻 
     // tim3 tim4  #1电机之旋编检测，计满到0xfffff  #2电机之旋编检测，计满到0xfffff
     // tim5 定时器的CH3(PA.2)和CH4(PA.3)作为捕获输入口
+    // by eros: TODO: can be canceld tim8 tim4 , mast be changed tim13
     // Init board-specific peripherals  初始化板特定的外设
     if (!board_init()) {
         for (;;); // TODO: handle properly

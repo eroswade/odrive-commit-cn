@@ -236,7 +236,7 @@ bool board_init()
     // Initialize all configured peripherals
     MX_GPIO_Init();
     MX_DMA_Init();
-    MX_ADC1_Init();
+    MX_ADC1_Init(); // ACD1 循环调度0-15的检测 @sa low_level start_general_purpose_adc
     MX_ADC2_Init();
     MX_TIM1_Init();
     MX_TIM8_Init();

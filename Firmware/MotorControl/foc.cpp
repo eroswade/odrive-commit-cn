@@ -39,7 +39,7 @@ Motor::Error AlphaBetaFrameController::get_output(
         return Motor::ERROR_MODULATION_IS_NAN;
     }
 
-    // 转SVPWM
+    // 转SVPWM alpha and beta to ta tb tc
     auto [tA, tB, tC, success] = SVM(mod_alpha_beta->first, mod_alpha_beta->second);
     if (!success) {
         return Motor::ERROR_MODULATION_MAGNITUDE;
