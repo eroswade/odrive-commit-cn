@@ -3,9 +3,11 @@
 
 #include <autogen/interfaces.hpp>
 
-class MechanicalBrake : public ODriveIntf::MechanicalBrakeIntf  {
+class MechanicalBrake : public ODriveIntf::MechanicalBrakeIntf  
+{
    public:
-    struct Config_t {
+    struct Config_t 
+    {
         uint16_t gpio_num = 0;
         bool is_active_low = true;
 

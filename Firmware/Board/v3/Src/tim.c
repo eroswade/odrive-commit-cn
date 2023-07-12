@@ -149,6 +149,8 @@ void MX_TIM1_Init(void)
   HAL_TIM_MspPostInit(&htim1);
 
 }
+
+
 /* TIM2 init function */
 void MX_TIM2_Init(void)
 {

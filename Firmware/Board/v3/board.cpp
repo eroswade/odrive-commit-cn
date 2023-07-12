@@ -413,7 +413,8 @@ volatile uint32_t timestamp_ = 0;
 volatile bool counting_down_ = false;
 
 // 这里才是初始化之后核心循环程序. 
-void TIM8_UP_TIM13_IRQHandler(void) {
+void TIM8_UP_TIM13_IRQHandler(void) 
+{
     COUNT_IRQ(TIM8_UP_TIM13_IRQn);
     
     // Entry into this function happens at 21-23 clock cycles after the timer
@@ -425,7 +426,8 @@ void TIM8_UP_TIM13_IRQHandler(void) {
     bool counting_down = TIM8->CR1 & TIM_CR1_DIR;
 
     bool timer_update_missed = (counting_down_ == counting_down);
-    if (timer_update_missed) {
+    if (timer_update_missed) 
+    {
         motors.disarm_with_error(Motor::ERROR_TIMER_UPDATE_MISSED);
         return;
     }
@@ -433,13 +435,16 @@ void TIM8_UP_TIM13_IRQHandler(void) {
 
     timestamp_ += TIM_1_8_PERIOD_CLOCKS * (TIM_1_8_RCR + 1);
 
-    if (!counting_down) {
+    if (!counting_down) 
+    {
         TaskTimer::enabled = odrv.task_timers_armed_;
         // Run sampling handlers and kick off control tasks when TIM8 is
         // counting up.
         odrv.sampling_cb();// 采样
         NVIC->STIR = ControlLoop_IRQn; // ControlLoop_IRQHandler 控制中断
-    } else {
+    } 
+    else 
+    {
         // Tentatively reset all PWM outputs to 50% duty cycles. If the control
         // loop handler finishes in time then these values will be overridden
         // before they go into effect.
@@ -453,7 +458,8 @@ void TIM8_UP_TIM13_IRQHandler(void) {
     }
 }
 
-void ControlLoop_IRQHandler(void) {
+void ControlLoop_IRQHandler(void) 
+{
     COUNT_IRQ(ControlLoop_IRQn);
     uint32_t timestamp = timestamp_;
 
@@ -461,7 +467,8 @@ void ControlLoop_IRQHandler(void) {
     std::optional<Iph_ABC_t> current0;
     std::optional<Iph_ABC_t> current1;
 
-    if (!fetch_and_reset_adcs(&current0, &current1)) {
+    if (!fetch_and_reset_adcs(&current0, &current1)) 
+    {
         motors.disarm_with_error(Motor::ERROR_BAD_TIMING);
     }
 
@@ -470,10 +477,12 @@ void ControlLoop_IRQHandler(void) {
     // So for now we guess the current to be 0 (this is not correct shortly after
     // disarming and when the motor spins fast in idle). Passing an invalid
     // current reading would create problems with starting FOC.
-    if (!(TIM1->BDTR & TIM_BDTR_MOE_Msk)) {
+    if (!(TIM1->BDTR & TIM_BDTR_MOE_Msk)) 
+    {
         current0 = {0.0f, 0.0f};
     }
-    if (!(TIM8->BDTR & TIM_BDTR_MOE_Msk)) {
+    if (!(TIM8->BDTR & TIM_BDTR_MOE_Msk)) 
+    {
         current1 = {0.0f, 0.0f};
     }
 
@@ -485,11 +494,13 @@ void ControlLoop_IRQHandler(void) {
 
     // By this time the ADCs for both M0 and M1 should have fired again. But
     // let's wait for them just to be sure.
-    MEASURE_TIME(odrv.task_times_.dc_calib_wait) {
+    MEASURE_TIME(odrv.task_times_.dc_calib_wait) 
+    {
         while (!(ADC2->SR & ADC_SR_EOC));
     }
 
-    if (!fetch_and_reset_adcs(&current0, &current1)) {
+    if (!fetch_and_reset_adcs(&current0, &current1)) 
+    {
         motors.disarm_with_error(Motor::ERROR_BAD_TIMING);
     }
 

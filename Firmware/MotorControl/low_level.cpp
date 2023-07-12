@@ -77,7 +77,8 @@ osThreadId analog_thread = 0;
 
 
 // @brief Arms the brake resistor
-void safety_critical_arm_brake_resistor() {
+void safety_critical_arm_brake_resistor() 
+{
     CRITICAL_SECTION() {
             axes.motor_.I_bus_ = 0.0f;
         brake_resistor_armed = true;
@@ -92,7 +93,8 @@ void safety_critical_arm_brake_resistor() {
 // all motor PWM outputs.
 // After calling this, the brake resistor can only be armed again
 // by calling safety_critical_arm_brake_resistor().
-void safety_critical_disarm_brake_resistor() {
+void safety_critical_disarm_brake_resistor() 
+{
     bool brake_resistor_was_armed = brake_resistor_armed;
 
     CRITICAL_SECTION() {
@@ -111,7 +113,8 @@ void safety_critical_disarm_brake_resistor() {
 
 // @brief Updates the brake resistor PWM timings unless
 // the brake resistor is disarmed.
-void safety_critical_apply_brake_resistor_timings(uint32_t low_off, uint32_t high_on) {
+void safety_critical_apply_brake_resistor_timings(uint32_t low_off, uint32_t high_on) 
+{
     if (high_on - low_off < TIM_APB1_DEADTIME_CLOCKS) {
         odrv.disarm_with_error(ODrive::ERROR_BRAKE_DEADTIME_VIOLATION);
     }
@@ -133,7 +136,8 @@ void safety_critical_apply_brake_resistor_timings(uint32_t low_off, uint32_t hig
 
 /* Function implementations --------------------------------------------------*/
 
-void start_adc_pwm() {
+void start_adc_pwm() 
+{
     // Disarm motors
         axes.motor_.disarm();
 
@@ -170,7 +174,8 @@ void start_adc_pwm() {
     HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
 #endif
 
-    if (odrv.config_.enable_brake_resistor) {
+    if (odrv.config_.enable_brake_resistor) 
+    {
         safety_critical_arm_brake_resistor();
     }
 }
