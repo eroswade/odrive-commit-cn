@@ -304,12 +304,17 @@ void MX_TIM8_Init(void)
   TIM_OC_InitTypeDef sConfigOC;
   TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig;
 
+// 在这里 PWM被设置为 168/（3500 *2）= 24K
+// 但上下都要计数。 24*2/3 = 16K 而且每3次产生一个中断16K TIM8中断  也就是62.5US
   htim8.Instance = TIM8;
   htim8.Init.Prescaler = 0;
-  htim8.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED3;
-  htim8.Init.Period = TIM_1_8_PERIOD_CLOCKS;
-  htim8.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim8.Init.RepetitionCounter = TIM_1_8_RCR;
+  htim8.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED3;// 向下和向上计数都产生比较中断，产生一个RCR计数
+  htim8.Init.Period = TIM_1_8_PERIOD_CLOCKS;//一个PWM为3500CYCLES
+  htim8.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;// 不分割
+  htim8.Init.RepetitionCounter = TIM_1_8_RCR;// RCR 寄存器。 正常为0，  2代表每3次产生一次中断。  
+  // 注意：这里的中断是计算的核心中断 ControlLoop_IRQHandler。  一次ControlLoop_IRQHandler占用两次中断
+  // 也就是62.5us * 2 = 125 us => 修改一次PWM
+  // ERPM / RPM = 极对数 
   if (HAL_TIM_PWM_Init(&htim8) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
@@ -322,13 +327,13 @@ void MX_TIM8_Init(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  sConfigOC.OCMode = TIM_OCMODE_PWM2;
+  sConfigOC.OCMode = TIM_OCMODE_PWM2; // PWM输出模式2  CNT<CCR  低电平
   sConfigOC.Pulse = 0;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-  sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
-  sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;// 输出极性
+  sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;// 互补输出通道极性
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;// 快速模式
+  sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;// 通道闲置状态 
+  sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;// 互补通道闲置状态
   if (HAL_TIM_PWM_ConfigChannel(&htim8, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);

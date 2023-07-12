@@ -724,8 +724,8 @@ extern "C" int main(void) {
     // TIM1 tim8 168Mhz 
     // 其它时钟  84MHZ
     // TIM8 TIM1  168MHz/(3500*2) = 24KHz   因为是中间对齐，所以式子中要*2   period = TIM_1_8_PERIOD_CLOCKS
-    // 这里PWM为24KHZ ， 脉冲宽度是3500*2个CYCLE的时长
-    // r
+    // 这里PWM为24KHZ ， 脉冲宽度是3500*2个CYCLE的时长 有点问题。 确定的是PWM为24K。 脉冲宽度是多少？
+    // 
     // TIM13 启动时和TIM1 TIM8同步， 任务耗时测量
     // TIM14 1KHZ  HAL库时基
     // TIM2  84M/(4096*2)=10.25KHz  | CH3(PB.10)和CH4(PB.11)作为pwm输出，耗散电阻 
