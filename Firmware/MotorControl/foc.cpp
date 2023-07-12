@@ -10,9 +10,11 @@ Motor::Error AlphaBetaFrameController::on_measurement(
 
     std::optional<float2D> Ialpha_beta;
     
-    if (currents.has_value()) {
+    if (currents.has_value()) 
+    {
         // Clarke transform
-        Ialpha_beta = {
+        Ialpha_beta = 
+        {            
             (*currents)[0],
             one_by_sqrt3 * ((*currents)[1] - (*currents)[2])
         };
@@ -41,7 +43,8 @@ Motor::Error AlphaBetaFrameController::get_output(
 
     // 转SVPWM alpha and beta to ta tb tc
     auto [tA, tB, tC, success] = SVM(mod_alpha_beta->first, mod_alpha_beta->second);
-    if (!success) {
+    if (!success) 
+    {
         return Motor::ERROR_MODULATION_MAGNITUDE;
     }
 
@@ -86,7 +89,8 @@ ODriveIntf::MotorIntf::Error FieldOrientedController::get_alpha_beta_output(
         // FOC didn't receive a current measurement yet.
         return Motor::ERROR_CONTROLLER_INITIALIZING;
     } 
-    else if (abs((int32_t)(i_timestamp_ - ctrl_timestamp_)) > MAX_CONTROL_LOOP_UPDATE_TO_CURRENT_UPDATE_DELTA) {
+    else if (abs((int32_t)(i_timestamp_ - ctrl_timestamp_)) > MAX_CONTROL_LOOP_UPDATE_TO_CURRENT_UPDATE_DELTA) 
+    {
         // Data from control loop and current measurement are too far apart.
         // 检测时间超时
         return Motor::ERROR_BAD_TIMING;
@@ -96,11 +100,14 @@ ODriveIntf::MotorIntf::Error FieldOrientedController::get_alpha_beta_output(
     // rate than current sensor updates. In this case we can reuse mod_d and
     // mod_q from a previous iteration.
 
-    if (!Vdq_setpoint_.has_value()) {
+    if (!Vdq_setpoint_.has_value()) 
+    {
         return Motor::ERROR_UNKNOWN_VOLTAGE_COMMAND;
-    } else if (!phase_.has_value() || !phase_vel_.has_value()) {
+    } else if (!phase_.has_value() || !phase_vel_.has_value()) 
+    {
         return Motor::ERROR_UNKNOWN_PHASE_ESTIMATE;
-    } else if (!vbus_voltage_measured_.has_value()) {
+    } else if (!vbus_voltage_measured_.has_value()) 
+    {
         return Motor::ERROR_UNKNOWN_VBUS_VOLTAGE;
     }
 
@@ -118,13 +125,15 @@ ODriveIntf::MotorIntf::Error FieldOrientedController::get_alpha_beta_output(
         float I_phase = phase + phase_vel * ((float)(int32_t)(i_timestamp_ - ctrl_timestamp_) / (float)TIM_1_8_CLOCK_HZ);
         float c_I = our_arm_cos_f32(I_phase);
         float s_I = our_arm_sin_f32(I_phase);
-        Idq = {
+        Idq = 
+        {
             c_I * Ialpha + s_I * Ibeta,
             c_I * Ibeta - s_I * Ialpha
         };
         Id_measured_ += I_measured_report_filter_k_ * (Idq->first - Id_measured_);
         Iq_measured_ += I_measured_report_filter_k_ * (Idq->second - Iq_measured_);
-    } else {
+    } else 
+    {
         Id_measured_ = 0.0f;
         Iq_measured_ = 0.0f;
     }

@@ -187,7 +187,8 @@ uint16_t adc_measurements_[ADC_CHANNEL_COUNT] = { 0 };
 //
 // The injected (high priority) channel of ADC1 is used to sample vbus_voltage.
 // This conversion is triggered by TIM1 at the frequency of the motor control loop.
-void start_general_purpose_adc() {
+void start_general_purpose_adc() 
+{
     ADC_ChannelConfTypeDef sConfig;
 
     // Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
@@ -203,17 +204,20 @@ void start_general_purpose_adc() {
     hadc1.Init.NbrOfConversion = ADC_CHANNEL_COUNT;
     hadc1.Init.DMAContinuousRequests = ENABLE;
     hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
-    if (HAL_ADC_Init(&hadc1) != HAL_OK) {
+    if (HAL_ADC_Init(&hadc1) != HAL_OK) 
+    {
         odrv.misconfigured_ = true; // TODO: this is a bit of an abuse of this flag
         return;
     }
 
     // Set up sampling sequence (channel 0 ... channel 15)
     sConfig.SamplingTime = ADC_SAMPLETIME_15CYCLES;
-    for (uint32_t channel = 0; channel < ADC_CHANNEL_COUNT; ++channel) {
+    for (uint32_t channel = 0; channel < ADC_CHANNEL_COUNT; ++channel) 
+    {
         sConfig.Channel = channel << ADC_CR1_AWDCH_Pos;
         sConfig.Rank = channel + 1; // rank numbering starts at 1
-        if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) {
+        if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) 
+        {
             odrv.misconfigured_ = true; // TODO: this is a bit of an abuse of this flag
             return;
         }
@@ -239,20 +243,24 @@ void start_general_purpose_adc() {
 //  21000kHz / (15+26) / 16 = 32kHz
 // The true frequency is slightly lower because of the injected vbus
 // measurements
-float get_adc_voltage(Stm32Gpio gpio) {
+float get_adc_voltage(Stm32Gpio gpio) 
+{
     return get_adc_relative_voltage(gpio) * adc_ref_voltage;
 }
 
-float get_adc_relative_voltage(Stm32Gpio gpio) {
+float get_adc_relative_voltage(Stm32Gpio gpio) 
+{
     const uint16_t channel = channel_from_gpio(gpio);
     return get_adc_relative_voltage_ch(channel);
 }
 
 // @brief Given a GPIO_port and pin return the associated adc_channel.
 // returns UINT16_MAX if there is no adc_channel;
-uint16_t channel_from_gpio(Stm32Gpio gpio) {
+uint16_t channel_from_gpio(Stm32Gpio gpio) 
+{
     uint32_t channel = UINT32_MAX;
-    if (gpio.port_ == GPIOA) {
+    if (gpio.port_ == GPIOA) 
+    {
         if (gpio.pin_mask_ == GPIO_PIN_0)
             channel = 0;
         else if (gpio.pin_mask_ == GPIO_PIN_1)
@@ -269,12 +277,14 @@ uint16_t channel_from_gpio(Stm32Gpio gpio) {
             channel = 6;
         else if (gpio.pin_mask_ == GPIO_PIN_7)
             channel = 7;
-    } else if (gpio.port_ == GPIOB) {
+    } else if (gpio.port_ == GPIOB) 
+    {
         if (gpio.pin_mask_ == GPIO_PIN_0)
             channel = 8;
         else if (gpio.pin_mask_ == GPIO_PIN_1)
             channel = 9;
-    } else if (gpio.port_ == GPIOC) {
+    } else if (gpio.port_ == GPIOC) 
+    {
         if (gpio.pin_mask_ == GPIO_PIN_0)
             channel = 10;
         else if (gpio.pin_mask_ == GPIO_PIN_1)
@@ -293,7 +303,8 @@ uint16_t channel_from_gpio(Stm32Gpio gpio) {
 
 // @brief Given an adc channel return the voltage as a ratio of adc_ref_voltage
 // returns -1.0f if the channel is not valid.
-float get_adc_relative_voltage_ch(uint16_t channel) {
+float get_adc_relative_voltage_ch(uint16_t channel) 
+{
     if (channel < ADC_CHANNEL_COUNT)
         return (float)adc_measurements_[channel] / adc_full_scale;
     else
@@ -304,7 +315,8 @@ float get_adc_relative_voltage_ch(uint16_t channel) {
 // IRQ Callbacks
 //--------------------------------
 
-void vbus_sense_adc_cb(uint32_t adc_value) {
+void vbus_sense_adc_cb(uint32_t adc_value) 
+{
     constexpr float voltage_scale = adc_ref_voltage * VBUS_S_DIVIDER_RATIO / adc_full_scale;
     vbus_voltage = adc_value * voltage_scale;
 }
@@ -357,25 +369,29 @@ void update_brake_current()
         // brake_resistance != 0 further up.
         brake_current = brake_duty * vbus_voltage / odrv.config_.brake_resistance;
         Ibus_sum += brake_duty * vbus_voltage / odrv.config_.brake_resistance;
-    } else {
+    } else 
+    {
         brake_duty = 0;
     }
 
     brake_resistor_current = brake_current;
     ibus_ += odrv.ibus_report_filter_k_ * (Ibus_sum - ibus_);
 
-    if (Ibus_sum > odrv.config_.dc_max_positive_current) {
+    if (Ibus_sum > odrv.config_.dc_max_positive_current) 
+    {
         odrv.disarm_with_error(ODrive::ERROR_DC_BUS_OVER_CURRENT);
         return;
     }
-    if (Ibus_sum < odrv.config_.dc_max_negative_current) {
+    if (Ibus_sum < odrv.config_.dc_max_negative_current) 
+    {
         odrv.disarm_with_error(ODrive::ERROR_DC_BUS_OVER_REGEN_CURRENT);
         return;
     }
     
     int high_on = (int)(TIM_APB1_PERIOD_CLOCKS * (1.0f - brake_duty));
     int low_off = high_on - TIM_APB1_DEADTIME_CLOCKS;
-    if (low_off < 0) low_off = 0;
+    if (low_off < 0) 
+        low_off = 0;
     safety_critical_apply_brake_resistor_timings(low_off, high_on);
 }
 

@@ -450,11 +450,13 @@ bool Axis::run_homing() {
     return check_for_errors();
 }
 
-bool Axis::run_idle_loop() {
+bool Axis::run_idle_loop() 
+{
     last_drv_fault_ = motor_.gate_driver_.get_error();
     mechanical_brake_.engage();
     set_step_dir_active(config_.enable_step_dir && config_.step_dir_always_on);
-    while (requested_state_ == AXIS_STATE_UNDEFINED) {
+    while (requested_state_ == AXIS_STATE_UNDEFINED) 
+    {
         motor_.setup();
         osDelay(1);
     }
@@ -485,7 +487,9 @@ void Axis::run_state_machine_loop()
                 if (config_.startup_closed_loop_control)
                     task_chain_[pos++] = AXIS_STATE_CLOSED_LOOP_CONTROL;
                 task_chain_[pos++] = AXIS_STATE_IDLE;
-            } else if (requested_state_ == AXIS_STATE_FULL_CALIBRATION_SEQUENCE) {
+            } 
+            else if (requested_state_ == AXIS_STATE_FULL_CALIBRATION_SEQUENCE) 
+            {
                 task_chain_[pos++] = AXIS_STATE_MOTOR_CALIBRATION;
                 if (encoder_.config_.mode == ODriveIntf::EncoderIntf::MODE_HALL)
                     task_chain_[pos++] = AXIS_STATE_ENCODER_HALL_POLARITY_CALIBRATION;
@@ -493,7 +497,9 @@ void Axis::run_state_machine_loop()
                     task_chain_[pos++] = AXIS_STATE_ENCODER_INDEX_SEARCH;
                 task_chain_[pos++] = AXIS_STATE_ENCODER_OFFSET_CALIBRATION;
                 task_chain_[pos++] = AXIS_STATE_IDLE;
-            } else if (requested_state_ != AXIS_STATE_UNDEFINED) {
+            }
+             else if (requested_state_ != AXIS_STATE_UNDEFINED) 
+            {
                 task_chain_[pos++] = requested_state_;
                 task_chain_[pos++] = AXIS_STATE_IDLE;
             }
@@ -508,8 +514,10 @@ void Axis::run_state_machine_loop()
         // Run the specified state
         // Handlers should exit if requested_state != AXIS_STATE_UNDEFINED
         bool status;
-        switch (current_state_) {
-            case AXIS_STATE_MOTOR_CALIBRATION: {
+        switch (current_state_) 
+        {
+            case AXIS_STATE_MOTOR_CALIBRATION: 
+            {
                 // These error checks are a hacky way to force legacy behavior
                 // when an error is raised. TODO: remove this when we overhaul
                 // the error architecture
@@ -520,7 +528,8 @@ void Axis::run_state_machine_loop()
                 status = motor_.run_calibration();
             } break;
 
-            case AXIS_STATE_ENCODER_INDEX_SEARCH: {
+            case AXIS_STATE_ENCODER_INDEX_SEARCH: 
+            {
                 //if (odrv.any_error())
                 //    goto invalid_state_label;
                 if (!motor_.is_calibrated_)
@@ -529,7 +538,8 @@ void Axis::run_state_machine_loop()
                 status = encoder_.run_index_search();
             } break;
 
-            case AXIS_STATE_ENCODER_DIR_FIND: {
+            case AXIS_STATE_ENCODER_DIR_FIND: 
+            {
                 //if (odrv.any_error())
                 //    goto invalid_state_label;
                 if (!motor_.is_calibrated_)
@@ -541,18 +551,21 @@ void Axis::run_state_machine_loop()
                     encoder_.apply_config(motor_.config_.motor_type);
             } break;
 
-            case AXIS_STATE_ENCODER_HALL_POLARITY_CALIBRATION: {
+            case AXIS_STATE_ENCODER_HALL_POLARITY_CALIBRATION: 
+            {
                 if (!motor_.is_calibrated_)
                     goto invalid_state_label;
                 // 霍尔极性校验 3级?
                 status = encoder_.run_hall_polarity_calibration();
             } break;
 
-            case AXIS_STATE_ENCODER_HALL_PHASE_CALIBRATION: {
+            case AXIS_STATE_ENCODER_HALL_PHASE_CALIBRATION: 
+            {
                 if (!motor_.is_calibrated_)
                     goto invalid_state_label;
 
-                if (!encoder_.config_.hall_polarity_calibrated) {
+                if (!encoder_.config_.hall_polarity_calibrated) 
+                {
                     encoder_.set_error(ODriveIntf::EncoderIntf::ERROR_HALL_NOT_CALIBRATED_YET);
                     goto invalid_state_label;
                 }
@@ -560,14 +573,16 @@ void Axis::run_state_machine_loop()
                 status = encoder_.run_hall_phase_calibration();
             } break;
 
-            case AXIS_STATE_HOMING: {
+            case AXIS_STATE_HOMING: 
+            {
                 //if (odrv.any_error())
                 //    goto invalid_state_label;
                 // 轴回0
                 status = run_homing();
             } break;
 
-            case AXIS_STATE_ENCODER_OFFSET_CALIBRATION: {
+            case AXIS_STATE_ENCODER_OFFSET_CALIBRATION: 
+            {
                 //if (odrv.any_error())
                 //    goto invalid_state_label;
                 if (!motor_.is_calibrated_)
@@ -575,7 +590,8 @@ void Axis::run_state_machine_loop()
                 status = encoder_.run_offset_calibration();
             } break;
 
-            case AXIS_STATE_LOCKIN_SPIN: {
+            case AXIS_STATE_LOCKIN_SPIN: 
+            {
                 //if (odrv.any_error())
                 //    goto invalid_state_label;
                 if (!motor_.is_calibrated_ || encoder_.config_.direction==0)
@@ -583,7 +599,8 @@ void Axis::run_state_machine_loop()
                 status = run_lockin_spin(config_.general_lockin, false);
             } break;
 
-            case AXIS_STATE_CLOSED_LOOP_CONTROL: {
+            case AXIS_STATE_CLOSED_LOOP_CONTROL: 
+            {
                 //if (odrv.any_error())
                 //    goto invalid_state_label;
                 if (!motor_.is_calibrated_ || (encoder_.config_.direction==0 && !config_.enable_sensorless_mode))
@@ -593,7 +610,8 @@ void Axis::run_state_machine_loop()
                 status = run_closed_loop_control_loop();
             } break;
 
-            case AXIS_STATE_IDLE: {
+            case AXIS_STATE_IDLE: 
+            {
                 // 空闲
                 run_idle_loop();
                 status = true;
@@ -607,10 +625,13 @@ void Axis::run_state_machine_loop()
         }
 
         // If the state failed, go to idle, else advance task chain
-        if (!status) {
+        if (!status) 
+        {
             std::fill(task_chain_.begin(), task_chain_.end(), AXIS_STATE_UNDEFINED);
             current_state_ = AXIS_STATE_IDLE;
-        } else {
+        } 
+        else 
+        {
             std::rotate(task_chain_.begin(), task_chain_.begin() + 1, task_chain_.end());
             task_chain_.back() = AXIS_STATE_UNDEFINED;
         }
