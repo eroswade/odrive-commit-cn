@@ -14,7 +14,8 @@ inline uint16_t sample_TIM13() {
     return clocks_per_cnt * TIM13->CNT;  // TODO: Use a hw_config
 }
 
-struct TaskTimer {
+struct TaskTimer 
+{
     uint32_t start_time_ = 0;
     uint32_t end_time_ = 0;
     uint32_t length_ = 0;

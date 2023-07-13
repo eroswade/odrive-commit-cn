@@ -249,6 +249,7 @@ bool board_init()
     MX_TIM13_Init();
 
     // External interrupt lines are individually enabled in stm32_gpio.cpp
+    // GPIO外部中断
     HAL_NVIC_SetPriority(EXTI0_IRQn, 1, 0);
     HAL_NVIC_EnableIRQ(EXTI0_IRQn);
     HAL_NVIC_SetPriority(EXTI1_IRQn, 1, 0);
@@ -264,11 +265,11 @@ bool board_init()
     HAL_NVIC_SetPriority(EXTI15_10_IRQn, 1, 0);
     HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
-    HAL_NVIC_SetPriority(ControlLoop_IRQn, 5, 0);
-    HAL_NVIC_EnableIRQ(ControlLoop_IRQn);
+    HAL_NVIC_SetPriority(ControlLoop_IRQn, 5, 0);// 这个中断是控制中断 ， 为软触发中断 在TIM8_UP_TIM13_IRQHandler中被触发
+    HAL_NVIC_EnableIRQ(ControlLoop_IRQn); //  ControlLoop_IRQn  ControlLoop_IRQHandler
 
-    HAL_NVIC_SetPriority(TIM8_UP_TIM13_IRQn, 0, 0);
-    HAL_NVIC_EnableIRQ(TIM8_UP_TIM13_IRQn);
+    HAL_NVIC_SetPriority(TIM8_UP_TIM13_IRQn, 0, 0);// TIM8时钟中断优先级最高
+    HAL_NVIC_EnableIRQ(TIM8_UP_TIM13_IRQn); // 使能中断
 
     if (odrv.config_.enable_uart_a) {
         uart_a->Init.BaudRate = odrv.config_.uart_a_baudrate;
@@ -333,6 +334,10 @@ void start_timers() {
         *  1. The triangle waveform of TIM1 leads the triangle waveform of TIM8 by a
         *     90° phase shift.
         *  2. Each TIM13 reload coincides with a TIM1 lower update event.
+        * 
+        * 1. 停止TIM1、TIM8以及TIM13的计数且设置好它们的初始计数值。
+        * 2. 然后以最快的“原子”指令方式（关闭中断+最少指令）、近乎同时地启动这三个定时器。
+        * 3. TIM1初始值为“TIM1_INIT_COUNT”，TIM8初始值为“0”。 TIM1领先TIM8接近“1/4 周期” (还差128/2=64个clock)，
         */
         Stm32Timer::start_synchronously<3>(
             {&htim1, &htim8, &htim13},
@@ -441,7 +446,7 @@ void TIM8_UP_TIM13_IRQHandler(void)
         // Run sampling handlers and kick off control tasks when TIM8 is
         // counting up.
         odrv.sampling_cb();// 采样
-        NVIC->STIR = ControlLoop_IRQn; // ControlLoop_IRQHandler 控制中断
+        NVIC->STIR = ControlLoop_IRQn; // ControlLoop_IRQHandler 软触发控制中断
     } 
     else 
     {

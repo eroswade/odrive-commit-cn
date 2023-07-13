@@ -82,10 +82,10 @@ HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
   uint32_t              uwPrescalerValue = 0;
   uint32_t              pFLatency;
   
-  /*Configure the TIM14 IRQ priority */
+  /*Configure the TIM14 IRQ priority  配置TIM14中断*/
   HAL_NVIC_SetPriority(TIM8_TRG_COM_TIM14_IRQn, TickPriority ,0); 
   
-  /* Enable the TIM14 global Interrupt */
+  /* Enable the TIM14 global Interrupt 启用TIM14中断*/
   HAL_NVIC_EnableIRQ(TIM8_TRG_COM_TIM14_IRQn); 
   
   /* Enable TIM14 clock */
@@ -97,26 +97,28 @@ HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
   /* Compute TIM14 clock */
   uwTimclock = 2*HAL_RCC_GetPCLK1Freq();
    
-  /* Compute the prescaler value to have TIM14 counter clock equal to 1MHz */
+  /* Compute the prescaler value to have TIM14 counter clock equal to 1MHz 
+    * 把时钟设置到1M HZ
+  */
   uwPrescalerValue = (uint32_t) ((uwTimclock / 1000000) - 1);
   
   /* Initialize TIM14 */
   htim14.Instance = TIM14;
   
   /* Initialize TIMx peripheral as follow:
-  + Period = [(TIM14CLK/1000) - 1]. to have a (1/1000) s time base.
+  + Period = [(TIM14CLK/1000) - 1]. to have a (1/1000) s time base. 1MS时钟
   + Prescaler = (uwTimclock/1000000 - 1) to have a 1MHz counter clock.
   + ClockDivision = 0
   + Counter direction = Up
   */
-  htim14.Init.Period = (1000000 / 1000) - 1;
-  htim14.Init.Prescaler = uwPrescalerValue;
+  htim14.Init.Period = (1000000 / 1000) - 1; // 1MS一次
+  htim14.Init.Prescaler = uwPrescalerValue;// 分频到1M
   htim14.Init.ClockDivision = 0;
   htim14.Init.CounterMode = TIM_COUNTERMODE_UP;
   if(HAL_TIM_Base_Init(&htim14) == HAL_OK)
   {
     /* Start the TIM time Base generation in interrupt mode */
-    return HAL_TIM_Base_Start_IT(&htim14);
+    return HAL_TIM_Base_Start_IT(&htim14); // TIM14定时时钟
   }
   
   /* Return function status */
