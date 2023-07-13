@@ -156,6 +156,7 @@ void MX_FREERTOS_Init(void);
 /**
   * @brief System Clock Configuration
   * @retval None
+  * 在board\system_init里被调用
   */
 void SystemClock_Config(void)
 {
@@ -171,15 +172,15 @@ void SystemClock_Config(void)
 
     /**Initializes the CPU, AHB and APB busses clocks 
     */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 4;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;//外部时钟
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;// 外部晶震启动
+  RCC_OscInitStruct.LSIState = RCC_LSI_ON;//低速内部时钟
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;// 打开PLL
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;//PLL为外部高速
+  RCC_OscInitStruct.PLL.PLLM = 4;// F(vco) = F(pll)*(PLLN/PLLM) = RCC_PLLSOURCE_HSE/*(168/4)
   RCC_OscInitStruct.PLL.PLLN = 168;
-  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-  RCC_OscInitStruct.PLL.PLLQ = 7;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;//F(pll)= F(vco)/PLLP = F(vco)/2;
+  RCC_OscInitStruct.PLL.PLLQ = 7;// F(usb otg fs sdio rng) = F(vco)/PLLQ
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
@@ -219,8 +220,8 @@ void SystemClock_Config(void)
   * @brief  Period elapsed callback in non blocking mode
   * @note   This function is called  when TIM14 interrupt took place, inside
   * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
-  * a global variable "uwTick" used as application time base.
-  * @param  htim : TIM handle
+  * a global variable "uwTick" used as application time base. TIM14作为HAL时基
+  * @param  htim : TIM handle  
   * @retval None
   */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)

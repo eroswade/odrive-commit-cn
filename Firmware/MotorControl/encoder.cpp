@@ -336,6 +336,7 @@ bool Encoder::run_hall_phase_calibration()
 // @brief Turns the motor in one direction for a bit and then in the other
 // direction in order to find the offset between the electrical phase 0
 // and the encoder state 0.
+// 电子0相位和旋编状态0之间的映射关系
 bool Encoder::run_offset_calibration() {
     const float start_lock_duration = 1.0f;
 

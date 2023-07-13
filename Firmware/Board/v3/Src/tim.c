@@ -64,6 +64,22 @@ TIM_HandleTypeDef htim5;
 TIM_HandleTypeDef htim8;
 TIM_HandleTypeDef htim13;
 
+// APB1时钟：42MHz； APB1相连的定时器时钟：84MHz
+// APB2时钟：84MHz； APB2相连的定时器时钟：168MHz
+//TIM1、TIM8 ：168MHz
+//其它 ：84MHz
+//定时器  输入频率     周期                          功能
+//TIM1    168MHz  168M /(3500 * 2)= 24KHz         # 1电机(M0) 的UVW驱动
+//TIM2    84MHz   84M /(4096 * 2) = 10.25KHz      CH3(PB .10) 和CH4(PB .11) 作为pwm输出，duty相反
+//TIM3    84MHz   用作计数                        1电机之旋编检测，计满到0xfffff
+//TIM4    84MHz   用作计数                        # 2电机之旋编检测，计满到0xfffff
+//TIM5    84MHz   用作计数                        定时器的CH3(PA .2) 和CH4(PA .3) 作为捕获输入口
+//TIM8    168MHz  24KHz                           # 2电机(M1) 的UVW驱动
+//TIM13   84MHz   8KHz                            启动时和TIM1及TIM8同步；任务耗时测量
+//TIM14   84MHz   1KHz                            作为HAL库的时基
+
+
+
 /* TIM1 init function */
 void MX_TIM1_Init(void)
 {
@@ -72,16 +88,18 @@ void MX_TIM1_Init(void)
     TIM_OC_InitTypeDef sConfigOC;
     TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig;
 
-    htim1.Instance = TIM1;
-    htim1.Init.Prescaler = 0;
-    htim1.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED3;
-    htim1.Init.Period = TIM_1_8_PERIOD_CLOCKS;
-    htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-    htim1.Init.RepetitionCounter = TIM_1_8_RCR;
-    if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
-    {
-        _Error_Handler(__FILE__, __LINE__);
-    }
+  //168MHz/(3500*2) = 24KHz 
+  htim1.Instance = TIM1;
+  htim1.Init.Prescaler = 0;
+  htim1.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED3;
+  htim1.Init.Period = TIM_1_8_PERIOD_CLOCKS;//3500
+  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  // TIM8控制的pwm波形为中间对齐，这里设置RCR=2，也就是每（2+1）次更新会中断一次。
+  htim1.Init.RepetitionCounter = TIM_1_8_RCR;//2  
+  if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
 
     sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
     if (HAL_TIM_ConfigClockSource(&htim1, &sClockSourceConfig) != HAL_OK)
@@ -369,16 +387,21 @@ void MX_TIM8_Init(void)
 void MX_TIM13_Init(void)
 {
 
-    htim13.Instance = TIM13;
-    htim13.Init.Prescaler = 0;
-    htim13.Init.CounterMode = TIM_COUNTERMODE_UP;
-    // 2*3500*3 * (84M/168M) -1 = 21K/2-1 = 10.5K
-    htim13.Init.Period = (2 * TIM_1_8_PERIOD_CLOCKS * (TIM_1_8_RCR + 1)) * ((float)TIM_APB1_CLOCK_HZ / (float)TIM_1_8_CLOCK_HZ) - 1;
-    htim13.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-    if (HAL_TIM_Base_Init(&htim13) != HAL_OK)
-    {
-        _Error_Handler(__FILE__, __LINE__);
-    }
+  htim13.Instance = TIM13;
+  htim13.Init.Prescaler = 0;
+  htim13.Init.CounterMode = TIM_COUNTERMODE_UP;
+  // TIM13重装时间和TIM1的下溢更新事件高度重合
+  // TIM13的周期 2*3500*(2+1) * (84000000/168000000) – 1 = 3500*3 - 1
+  // TIM1的“更新中断”周期正好也是“3500*3”（中间对齐，RCR=2） 那么低溢出周期就是：“3500*6”了
+  // TIM1的输入频率是TIM13的2倍，TIM13的计数方式是“向上”（不是中间对齐）。所以说TIM13的reload频率和TIM1的低溢出“更新中断频率”是一致的，
+  // 但是TIM13的初始计数值落后TIM1，落后了“TIM1_INIT_COUNT/2”也就是(3500/2-128)/2=811
+  // TIM13另一个功能就是作为耗时计算的时间计时： TaskTimer::start()
+  htim13.Init.Period = (2 * TIM_1_8_PERIOD_CLOCKS * (TIM_1_8_RCR+1)) * ((float)TIM_APB1_CLOCK_HZ / (float)TIM_1_8_CLOCK_HZ) - 1;
+  htim13.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  if (HAL_TIM_Base_Init(&htim13) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
 
 }
 

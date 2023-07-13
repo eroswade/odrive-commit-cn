@@ -17,7 +17,8 @@ endif
 
 ifneq (,$(findstring v3.,$(CONFIG_BOARD_VERSION)))
   OPENOCD := openocd -f interface/stlink-v2.cfg $(PROGRAMMER_CMD) -f target/stm32f4x.cfg -c init
-  GDB := arm-none-eabi-gdb --ex 'target extended-remote | openocd -f "interface/stlink-v2.cfg" -f "target/stm32f4x.cfg" -c "gdb_port pipe; log_output openocd.log"' --ex 'monitor reset halt'
+  OPENOCDJLINK := openocd  -f interface/jlink.cfg -c "transport select swd" $(PROGRAMMER_CMD) -f target/gd32f4x.cfg -c init
+  GDB := gdb-multiarch --ex 'target extended-remote | openocd -f "interface/stlink-v2.cfg" -f "target/stm32f4x.cfg" -c "gdb_port pipe; log_output openocd.log"' --ex 'monitor reset halt'
 else ifneq (,$(findstring v4.,$(CONFIG_BOARD_VERSION)))
   OPENOCD := openocd -f interface/stlink.cfg $(PROGRAMMER_CMD) -f target/stm32f7x.cfg -c 'reset_config none separate' -c init
   GDB := arm-none-eabi-gdb --ex 'target extended-remote | openocd -f "interface/stlink-v2.cfg" -f "target/stm32f7x.cfg" -c "reset_config none separate" -c "gdb_port pipe; log_output openocd.log"' --ex 'monitor reset halt'
@@ -69,6 +70,12 @@ flash-stlink2: all
 		-c 'reset run' \
 		-c exit
 
+flash-jlink-ocd: all
+	$(OPENOCDJLINK) \
+		-c 'program $(FIRMWARE) verify reset' \
+		-c exit
+flash-jlink: all
+	jlink -if swd -device GD32F405RG -speed 4000 gd32f405rg.jlink
 gdb-stlink2:
 	$(GDB) $(FIRMWARE)
 
@@ -99,6 +106,8 @@ dfu: all
 	python ../tools/odrivetool $(if $(value SERIAL_NUMBER),--serial-number $(SERIAL_NUMBER),) dfu $(FIRMWARE_HEX)
 
 flash: flash-stlink2
+jflasho: flash-jlink-ocd
+jflash: flash-jlink
 gdb: gdb-stlink2
 erase: erase-stlink2
 unlock: unlock-stlink2

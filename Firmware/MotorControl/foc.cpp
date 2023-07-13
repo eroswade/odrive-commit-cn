@@ -69,7 +69,7 @@ Motor::Error FieldOrientedController::on_measurement(
         uint32_t input_timestamp) 
 {
     // Store the measurements for later processing.
-    i_timestamp_ = input_timestamp;
+    i_timestamp_ = input_timestamp;// 对应着相电流被采集时的时间戳
     vbus_voltage_measured_ = vbus_voltage;
     Ialpha_beta_measured_ = Ialpha_beta;
 
@@ -92,10 +92,19 @@ ODriveIntf::MotorIntf::Error FieldOrientedController::get_alpha_beta_output(
     else if (abs((int32_t)(i_timestamp_ - ctrl_timestamp_)) > MAX_CONTROL_LOOP_UPDATE_TO_CURRENT_UPDATE_DELTA) 
     {
         // Data from control loop and current measurement are too far apart.
-        // 检测时间超时
+        // 检测时间超时  
+        // 正常情况下 i_timestamp_ 和 ctrl_timestamp_是一样大小。
+        // 实际上Odrive的设计，它认为“ctrl_timestamp_”是一个即时更新的量，
+        // 它对应着“phase”计算出来的时间点，只不过目前代码中简化了，
+        // 让它等于了“i_timestamp_”，它应该要比“i_timestamp_”时间戳晚一点。
+        // 因为：先是采集到了电流（对应“i_timestamp_”），然后各种update获取phase等值
+        // （对应“ctrl_timestamp_”），而调用到这里的时候，是因为“pwm_update_cb”的调用引起的，
+        // 时间又过去了一小会了。这个分析很重要，否则后面的Park转换时的phase的计算就会迷惑。
         return Motor::ERROR_BAD_TIMING;
     }
 
+    // ctrl_timestamp_只有一个地方进行了更新 control_loop_cb
+    // 
     // TODO: improve efficiency in case PWM updates are requested at a higher
     // rate than current sensor updates. In this case we can reuse mod_d and
     // mod_q from a previous iteration.
@@ -122,6 +131,10 @@ ODriveIntf::MotorIntf::Error FieldOrientedController::get_alpha_beta_output(
     if (Ialpha_beta_measured_.has_value()) 
     {
         auto [Ialpha, Ibeta] = *Ialpha_beta_measured_;
+        // “phase_”的update获取，在电流的获取时间后面，它对应着时间戳“ctrl_timestamp_”， 
+        // 而电流的获取对应着时间戳“i_timestamp_”，
+        // 那么我们计算的时候显然要获的在电流采集时这个“瞬间”的“电角度”，
+        // 这个“电角度”显然比起“phase_”要前一些
         float I_phase = phase + phase_vel * ((float)(int32_t)(i_timestamp_ - ctrl_timestamp_) / (float)TIM_1_8_CLOCK_HZ);
         float c_I = our_arm_cos_f32(I_phase);
         float s_I = our_arm_sin_f32(I_phase);
@@ -159,7 +172,7 @@ ODriveIntf::MotorIntf::Error FieldOrientedController::get_alpha_beta_output(
         }
 
         // motor::update_current_controller_gains  计算pi_gains_
-        auto [p_gain, i_gain] = *pi_gains_;// p_gain=0.014 i_gain = 82.492 // PID
+        auto [p_gain, i_gain] = *pi_gains_;// p_gain=0.014 i_gain = 82.492 // 电流PI环
         auto [Id, Iq] = *Idq;// 上面park变换得到的
         auto [Id_setpoint, Iq_setpoint] = *Idq_setpoint_;// 这个由Motor::update计算得到
 
@@ -168,7 +181,7 @@ ODriveIntf::MotorIntf::Error FieldOrientedController::get_alpha_beta_output(
 
         // Apply PI control (V{d,q}_setpoint act as feed-forward terms in this mode)
         // v_current_control_integral_d_ 可以被监控到 
-        // Vd = 0 
+        // Vd = 0  “mod_d”和“mod_q”是一个针对2/3Ud 的“比值”
         mod_d = V_to_mod * (Vd + v_current_control_integral_d_ + Ierr_d * p_gain);// p_gain=0.014
         mod_q = V_to_mod * (Vq + v_current_control_integral_q_ + Ierr_q * p_gain);
 

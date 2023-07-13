@@ -283,10 +283,11 @@ bool Axis::start_closed_loop_control() {
         } 
         else if (controller_.config_.load_encoder_axis < AXIS_COUNT)   // 处理有传感器的情况
         {
-            controller_.pos_estimate_circular_src_.connect_to(&axes.encoder_.pos_circular_);
+            Axis* ax = &axes[controller_.config_.load_encoder_axis];
+            controller_.pos_estimate_circular_src_.connect_to(&ax->encoder_.pos_circular_);
             controller_.pos_wrap_src_.connect_to(&controller_.config_.circular_setpoint_range);
-            controller_.pos_estimate_linear_src_.connect_to(&axes.encoder_.pos_estimate_);
-            controller_.vel_estimate_src_.connect_to(&axes.encoder_.vel_estimate_);
+            controller_.pos_estimate_linear_src_.connect_to(&ax->encoder_.pos_estimate_);
+            controller_.vel_estimate_src_.connect_to(&ax->encoder_.vel_estimate_);
         } 
         else // 失败??? 
         {
@@ -474,31 +475,31 @@ void Axis::run_state_machine_loop()
         if (requested_state_ != AXIS_STATE_UNDEFINED) 
         {
             size_t pos = 0;
-            if (requested_state_ == AXIS_STATE_STARTUP_SEQUENCE) 
+            if (requested_state_ == AXIS_STATE_STARTUP_SEQUENCE) // 启动程序 ODRIVE启动后自己走的流程
             {
                 if (config_.startup_motor_calibration)
                     task_chain_[pos++] = AXIS_STATE_MOTOR_CALIBRATION;
-                if (config_.startup_encoder_index_search && encoder_.config_.use_index)
-                    task_chain_[pos++] = AXIS_STATE_ENCODER_INDEX_SEARCH;
-                if (config_.startup_encoder_offset_calibration)
-                    task_chain_[pos++] = AXIS_STATE_ENCODER_OFFSET_CALIBRATION;
+                if (config_.startup_encoder_index_search && encoder_.config_.use_index)// 默认不启动
+                    task_chain_[pos++] = AXIS_STATE_ENCODER_INDEX_SEARCH;// 找INDEX
+                if (config_.startup_encoder_offset_calibration)// 默认不校准 
+                    task_chain_[pos++] = AXIS_STATE_ENCODER_OFFSET_CALIBRATION;// 编码器偏移校准
                 if (config_.startup_homing)
-                    task_chain_[pos++] = AXIS_STATE_HOMING;
+                    task_chain_[pos++] = AXIS_STATE_HOMING;// 回0
                 if (config_.startup_closed_loop_control)
-                    task_chain_[pos++] = AXIS_STATE_CLOSED_LOOP_CONTROL;
+                    task_chain_[pos++] = AXIS_STATE_CLOSED_LOOP_CONTROL;//进入闭环
                 task_chain_[pos++] = AXIS_STATE_IDLE;
             } 
-            else if (requested_state_ == AXIS_STATE_FULL_CALIBRATION_SEQUENCE) 
+            else if (requested_state_ == AXIS_STATE_FULL_CALIBRATION_SEQUENCE) //运行电机校准，编码器偏移校准(如果编码器索引信号启用的话同时进行索引信号的搜索，如果要启用编码器索引脉冲信号设置
             {
                 task_chain_[pos++] = AXIS_STATE_MOTOR_CALIBRATION;
                 if (encoder_.config_.mode == ODriveIntf::EncoderIntf::MODE_HALL)
                     task_chain_[pos++] = AXIS_STATE_ENCODER_HALL_POLARITY_CALIBRATION;
                 if (encoder_.config_.use_index)
-                    task_chain_[pos++] = AXIS_STATE_ENCODER_INDEX_SEARCH;
-                task_chain_[pos++] = AXIS_STATE_ENCODER_OFFSET_CALIBRATION;
+                    task_chain_[pos++] = AXIS_STATE_ENCODER_INDEX_SEARCH;//
+                task_chain_[pos++] = AXIS_STATE_ENCODER_OFFSET_CALIBRATION;// 在这个模式下. 必然会正反转两圈
                 task_chain_[pos++] = AXIS_STATE_IDLE;
-            }
-             else if (requested_state_ != AXIS_STATE_UNDEFINED) 
+            } 
+            else if (requested_state_ != AXIS_STATE_UNDEFINED) // 消息传入自定义 通讯控制
             {
                 task_chain_[pos++] = requested_state_;
                 task_chain_[pos++] = AXIS_STATE_IDLE;

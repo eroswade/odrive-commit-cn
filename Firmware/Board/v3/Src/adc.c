@@ -226,6 +226,7 @@ void MX_ADC3_Init(void)
 
 }
 
+// ADC初始化到DMA
 void HAL_ADC_MspInit(ADC_HandleTypeDef* adcHandle)
 {
 
@@ -239,14 +240,15 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* adcHandle)
     __HAL_RCC_ADC1_CLK_ENABLE();
   
     /**ADC1 GPIO Configuration    
-    PC0     ------> ADC1_IN10
-    PC1     ------> ADC1_IN11
-    PC2     ------> ADC1_IN12
-    PC3     ------> ADC1_IN13
-    PA4     ------> ADC1_IN4
-    PA5     ------> ADC1_IN5
-    PA6     ------> ADC1_IN6
-    PC5     ------> ADC1_IN15 
+    PC0     ------> ADC1_IN10 M0_IB_Pin M0电压Vds SO1
+    PC1     ------> ADC1_IN11 M0_IC_Pin MO电压Vds SO2
+    PC2     ------> ADC1_IN12 M1_IC_Pin M1电压Vds SO2
+    PC3     ------> ADC1_IN13 M1_IB_Pin M1电压Vds SO1
+    PA4     ------> ADC1_IN4 M1_TEMP_Pin
+    PA5     ------> ADC1_IN5 AUX_TEMP_Pin
+    PA6     ------> ADC1_IN6 VBUS_S_Pin
+    PC5     ------> ADC1_IN15 M0_TEMP_Pin M0温度
+    注意. 这里是ADC检测PIN脚定义位置.
     */
     GPIO_InitStruct.Pin = M0_IB_Pin|M0_IC_Pin|M1_IC_Pin|M1_IB_Pin 
                           |M0_TEMP_Pin;

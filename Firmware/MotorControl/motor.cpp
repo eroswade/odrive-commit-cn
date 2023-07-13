@@ -241,9 +241,36 @@ void Motor::apply_pwm_timings(uint16_t timings[3], bool tentative)
             disarm_with_error(ERROR_BRAKE_RESISTOR_DISARMED);
         }
 
-        TIM_HandleTypeDef* htim = timer_;
+        // timer_ 在motor0是htim1  motor1是htim8
+/*
+  //168MHz/(3500*2) = 24KHz 
+  htim1.Instance = TIM1;
+  htim1.Init.Prescaler = 0;
+  htim1.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED3;
+  htim1.Init.Period = TIM_1_8_PERIOD_CLOCKS;//3500
+  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  // TIM8控制的pwm波形为中间对齐，这里设置RCR=2，也就是每（2+1）次更新会中断一次。
+  htim1.Init.RepetitionCounter = TIM_1_8_RCR;//2  
+  
+
+  prescaler 分频来自APBx的时钟频率  168M/(Prescaler+1) = 168M
+  CounterMode  TIM_CounterMode_CenterAligned3  TIM 中央对齐模式 3 计数模式
+  Period 168M/(TIM_1_8_PERIOD_CLOCKS*TIM_1_8_RCR) = 24K 
+  OCMode = PWM2 模式 TIMx_CNT < TIMx_CCR1 时通道为无效电平
+
+  htim8.Instance = TIM8;
+  htim8.Init.Prescaler = 0;
+  htim8.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED3;
+  htim8.Init.Period = TIM_1_8_PERIOD_CLOCKS;
+  htim8.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim8.Init.RepetitionCounter = TIM_1_8_RCR;
+  这个配置和htim1一样.
+
+  @sa HAL_TIM_MspPostInit --> M0 AH pa8 AL pb13  BH pa9 BL pb14  CH pa10 CL pb15
+*/
+        TIM_HandleTypeDef* htim = timer_; 
         TIM_TypeDef* tim = htim->Instance;
-        tim->CCR1 = timings[0];
+        tim->CCR1 = timings[0]; // capture/compare register 1
         tim->CCR2 = timings[1];
         tim->CCR3 = timings[2];
         
@@ -322,26 +349,36 @@ bool Motor::apply_config()
 }
 
 // @brief Set up the gate drivers
+// 设置门电路. 注意, 这里驱动了DVR8301
 bool Motor::setup() 
 {
     fet_thermistor_.update();
     motor_thermistor_.update();
 
+    // 代码通过设置的电流采样范围，计算出需要的放大倍数
+    // 如果电流采样范围设置30A，放大倍数为80倍，
+    // 如果电流采样范围设置60A，放大倍数为40倍，
+    // 如果电流采样范围设置120A，放大倍数为20倍，
+    // 如果电流采样范围设置240A，放大倍数为10倍，
+
     // Solve for exact gain, then snap down to have equal or larger range as requested
     // or largest possible range otherwise
     constexpr float kMargin = 0.90f;
     constexpr float max_output_swing = 1.35f; // [V] out of amplifier
-    float max_unity_gain_current = kMargin * max_output_swing * shunt_conductance_; // [A]
-    float requested_gain = max_unity_gain_current / config_.requested_current_range; // [V/V]
+            // 最大?? = 边缘 x 波动 x 采样电阻导数
+
+    // shunt_conductance_ = 1/SHUNT_RESISTANCE(675e-6f) = 1/0.000675 = 1481.48148
+    float max_unity_gain_current = kMargin * max_output_swing * shunt_conductance_; // [A] = 1800
+    float requested_gain = max_unity_gain_current / config_.requested_current_range; // [V/V] 1800/range--> default = 60  == 1800/60 = 30;
     
     float actual_gain;
-    if (!gate_driver_.config(requested_gain, &actual_gain))
+    if (!gate_driver_.config(requested_gain, &actual_gain))// 30传进去. 默认给出的是20
         return false;
 
     // Values for current controller
     phase_current_rev_gain_ = 1.0f / actual_gain;
     // Clip all current control to actual usable range
-    max_allowed_current_ = max_unity_gain_current * phase_current_rev_gain_;
+    max_allowed_current_ = max_unity_gain_current * phase_current_rev_gain_;// 最大允许电流=1800/actual_gain 默认为90
 
     max_dc_calib_ = 0.1f * max_allowed_current_;
 
@@ -389,7 +426,7 @@ float Motor::effective_current_lim()
     }
     else 
     {
-        //将两个电流限制量的最小值(航模电机用这个)
+        //将两个电流限制量的最小值(航模电机用这个)  ODRIVE 建议FWC在这里限制电流
         current_lim = std::min(current_lim, axis_->motor_.max_allowed_current_);
     }
 
@@ -529,6 +566,7 @@ bool Motor::measure_phase_inductance(float test_voltage)
 // TODO: motor calibration should only be a utility function that's called from
 // the UI on explicit user request. It should take its parameters as input
 // arguments and return the measured results without modifying any config values.
+// 找phase_resistance相电阻和phase_inductance相电感系数
 bool Motor::run_calibration() 
 {
     float R_calib_max_voltage = config_.resistance_calib_max_voltage;
@@ -663,6 +701,8 @@ void Motor::update(uint32_t timestamp)
  * 电流检测回调. 在board.cpp里ControlLoop_IRQHandler调用 
  * @param current 3个数组 u v w,或者也叫ABC.
  * 核心是把测量电压,加上计算出来的电流,给控制系统
+ * 检测一下电流是否异常（比如超过限制电流值）等等安全检查，然后调用“on_mesurement()”，
+ * 通过获取的相电压(IA 、IB 和Ic )计算出Iα 和Iβ 。
  */
 void Motor::current_meas_cb(uint32_t timestamp, std::optional<Iph_ABC_t> current) 
 {

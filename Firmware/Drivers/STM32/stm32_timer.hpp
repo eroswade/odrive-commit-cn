@@ -40,6 +40,14 @@ private:
 #pragma GCC push_options
 #pragma GCC optimize (3)
 
+/*
+函数“start_synchronously_impl()”的实现，比较简单也容易理解，这里直接总结：
+
+1）停止TIM1、TIM8以及TIM13的计数且设置好它们的初始计数值。
+
+2）然后以最快的“原子”指令方式（关闭中断+最少指令）、近乎同时地启动这三个定时器。如此就达到了近似同步的效果！
+*/
+
     template<size_t I, size_t ... Is>
     static void start_synchronously_impl(std::array<TIM_HandleTypeDef*, I> timers, std::array<size_t, I> counters, std::index_sequence<Is...>) {
         for (size_t i = 0; i < I; ++i) {

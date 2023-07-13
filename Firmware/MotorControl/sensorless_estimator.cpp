@@ -1,7 +1,8 @@
 
 #include "odrive_main.h"
 
-void SensorlessEstimator::reset() {
+void SensorlessEstimator::reset() 
+{
     pll_pos_ = 0.0f;
     vel_estimate_ = 0.0f;
     V_alpha_beta_memory_[0] = 0.0f;
@@ -10,7 +11,8 @@ void SensorlessEstimator::reset() {
     flux_state_[1] = 0.0f;
 }
 
-bool SensorlessEstimator::update() {
+bool SensorlessEstimator::update() 
+{
     // Algorithm based on paper: Sensorless Control of Surface-Mount Permanent-Magnet Synchronous Motors Based on a Nonlinear Observer
     // http://cas.ensmp.fr/~praly/Telechargement/Journaux/2010-IEEE_TPEL-Lee-Hong-Nam-Ortega-Praly-Astolfi.pdf
     // In particular, equation 8 (and by extension eqn 4 and 6).
@@ -27,7 +29,8 @@ bool SensorlessEstimator::update() {
     float pll_ki = 0.25f * (pll_kp * pll_kp);
 
     // Check that we don't get problems with discrete time approximation
-    if (!(current_meas_period * pll_kp < 1.0f)) {
+    if (!(current_meas_period * pll_kp < 1.0f)) 
+    {
         error_ |= ERROR_UNSTABLE_GAIN;
         axis_->error_ |= Axis::ERROR_SENSORLESS_ESTIMATOR_FAILED;
         reset(); // Reset state for when the next valid current measurement comes in.
@@ -37,45 +40,51 @@ bool SensorlessEstimator::update() {
     // TODO: we read values here which are modified by a higher priority interrupt.
     // This is not thread-safe.    
     auto current_meas = axis_->motor_.current_meas_;
-    if (!axis_->motor_.is_armed_) {
+    if (!axis_->motor_.is_armed_) 
+    {
         // While the motor is disarmed the current is not measurable so we
         // assume that it's zero.
         current_meas = {0.0f, 0.0f};
     }
-    if (!current_meas.has_value()) {
+    if (!current_meas.has_value()) 
+    {
         error_ |= ERROR_UNKNOWN_CURRENT_MEASUREMENT;
         axis_->error_ |= Axis::ERROR_SENSORLESS_ESTIMATOR_FAILED;
         reset(); // Reset state for when the next valid current measurement comes in.
         return false;
     }
 
-    // Clarke transform
+    // Clarke transform Clarke变换
+    // output: Iab,  
+    // input: 3个测量得到的相电流
     float I_alpha_beta[2] = {
         current_meas->phA,
         one_by_sqrt3 * (current_meas->phB - current_meas->phC)};
 
-    // alpha-beta vector operations
+    // alpha-beta vector operations 
     float eta[2];
-    for (int i = 0; i <= 1; ++i) {
-        // y is the total flux-driving voltage (see paper eqn 4)
+    for (int i = 0; i <= 1; ++i) 
+    {
+        // y is the total flux-driving voltage (see paper eqn 4) 磁链驱动电压 论文公式4
         float y = -axis_->motor_.config_.phase_resistance * I_alpha_beta[i] + V_alpha_beta_memory_[i];
-        // flux dynamics (prediction)
+        // flux dynamics (prediction) 磁链预测
         float x_dot = y;
-        // integrate prediction to current timestep
+        // integrate prediction to current timestep 时间戳*电压
         flux_state_[i] += x_dot * current_meas_period;
 
-        // eta is the estimated permanent magnet flux (see paper eqn 6)
+        // eta is the estimated permanent magnet flux (see paper eqn 6) 预测磁通量.
         eta[i] = flux_state_[i] - axis_->motor_.config_.phase_inductance * I_alpha_beta[i];
     }
 
-    // Non-linear observer (see paper eqn 8):
+    // Non-linear observer (see paper eqn 8): 非线性磁链
     float pm_flux_sqr = config_.pm_flux_linkage * config_.pm_flux_linkage;
     float est_pm_flux_sqr = eta[0] * eta[0] + eta[1] * eta[1];
     float bandwidth_factor = 1.0f / pm_flux_sqr;
     float eta_factor = 0.5f * (config_.observer_gain * bandwidth_factor) * (pm_flux_sqr - est_pm_flux_sqr);
 
     // alpha-beta vector operations
-    for (int i = 0; i <= 1; ++i) {
+    for (int i = 0; i <= 1; ++i) 
+    {
         // add observer action to flux estimate dynamics
         float x_dot = eta_factor * eta[i];
         // convert action to discrete-time
@@ -85,18 +94,20 @@ bool SensorlessEstimator::update() {
     }
 
     // Flux state estimation done, store V_alpha_beta for next timestep
+    // 磁通计算完成, 算Vab,用来后续计算.
     V_alpha_beta_memory_[0] = axis_->motor_.current_control_.final_v_alpha_;
     V_alpha_beta_memory_[1] = axis_->motor_.current_control_.final_v_beta_;
 
     float phase_vel = phase_vel_.previous().value_or(0.0f);
 
-    // predict PLL phase with velocity
+    // predict PLL phase with velocity 以速度预测位置
     pll_pos_ = wrap_pm_pi(pll_pos_ + current_meas_period * phase_vel);
-    // update PLL phase with observer permanent magnet phase
+    // update PLL phase with observer permanent magnet phase 磁链计算向量角.
     float phase = fast_atan2(eta[1], eta[0]);
-    float delta_phase = wrap_pm_pi(phase - pll_pos_);
+    float delta_phase = wrap_pm_pi(phase - pll_pos_);// 偏移角度 = 磁链获得向量角-速度说通向量角.
+    // 更新PLL位置
     pll_pos_ = wrap_pm_pi(pll_pos_ + current_meas_period * pll_kp * delta_phase);
-    // update PLL velocity
+    // update PLL velocity 更新PLL 速度
     phase_vel += current_meas_period * pll_ki * delta_phase;
 
     // set outputs

@@ -19,7 +19,8 @@ public:
     struct Config_t {
         Mode mode = MODE_INCREMENTAL;
         float calib_range = 0.02f; // Accuracy required to pass encoder cpr check
-        float calib_scan_distance = 16.0f * M_PI; // rad electrical
+        // 扫描电子角度 比如电机是7对极正转的圈数16PI/2PI/7 = 1.14(圈)  如果是4对.16/2/4 = 2圈
+        float calib_scan_distance = 16.0f * M_PI; // rad electrical 
         float calib_scan_omega = 4.0f * M_PI; // rad/s electrical
         float bandwidth = 1000.0f;
         int32_t phase_offset = 0;        // Offset between encoder count and rotor electrical phase
@@ -72,10 +73,13 @@ public:
     void set_circular_count(int32_t count, bool update_offset);
     bool calib_enc_offset(float voltage_magnitude);
 
+    // 使电机朝一个方向旋转，直到找到编码器索引
+    // 如果您的编码器带有索引（Z）信号，则可以避免每次启动时都必须进行编码器偏移校准
     bool run_index_search();
     bool run_direction_find();
     bool run_hall_polarity_calibration();
     bool run_hall_phase_calibration();
+    // 电子0相位和旋编状态0之间的映射关系
     bool run_offset_calibration();
     void sample_now();
     bool read_sampled_gpio(Stm32Gpio gpio);
@@ -97,12 +101,12 @@ public:
     bool index_found_ = false;
     bool is_ready_ = false;
     int32_t shadow_count_ = 0;//
-    int32_t count_in_cpr_ = 0;// ��һȦ�ڵ���
+    int32_t count_in_cpr_ = 0;// 在一圈内的量
     float interpolation_ = 0.0f;
     OutputPort<float> phase_ = 0.0f;     // [rad]
     OutputPort<float> phase_vel_ = 0.0f; // [rad/s]
     float pos_estimate_counts_ = 0.0f;  // [count]
-    float pos_cpr_counts_ = 0.0f;  // [count] ռ�ö���Ȧ
+    float pos_cpr_counts_ = 0.0f;  // [count] 占用多少圈
     float delta_pos_cpr_counts_ = 0.0f;  // [count] phase detector result for debug
     float vel_estimate_counts_ = 0.0f;  // [count/s]
     float pll_kp_ = 0.0f;   // [count/s / count]

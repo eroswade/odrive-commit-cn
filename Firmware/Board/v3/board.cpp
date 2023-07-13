@@ -36,9 +36,17 @@ UART_HandleTypeDef* uart_a = &huart4;
 UART_HandleTypeDef* uart_b = &huart2; // TODO: this could be supported in ODrive v3.6 (or similar) using STM32's USART2
 UART_HandleTypeDef* uart_c = nullptr;
 
+// 门电路CS和nFAULT
 Drv8301 m0_gate_driver{
     &spi3_arbiter,
-    {M0_nCS_GPIO_Port, M0_nCS_Pin}, // nCS
+    {M0_nCS_GPIO_Port, M0_nCS_Pin}, // nCS PC13
+    {}, // EN pin (shared between both motors, therefore we actuate it outside of the drv8301 driver)
+    {nFAULT_GPIO_Port, nFAULT_Pin} // nFAULT pin (shared between both motors)
+};
+
+Drv8301 m1_gate_driver{
+    &spi3_arbiter,
+    {M1_nCS_GPIO_Port, M1_nCS_Pin}, // nCS PC14
     {}, // EN pin (shared between both motors, therefore we actuate it outside of the drv8301 driver)
     {nFAULT_GPIO_Port, nFAULT_Pin} // nFAULT pin (shared between both motors)
 };
@@ -47,54 +55,108 @@ const float fet_thermistor_poly_coeffs[] =
     {363.93910201f, -462.15369634f, 307.55129571f, -27.72569531f};
 const size_t fet_thermistor_num_coeffs = sizeof(fet_thermistor_poly_coeffs)/sizeof(fet_thermistor_poly_coeffs[1]);
 
-OnboardThermistorCurrentLimiter fet_thermistors = {
+// 板载热敏
+OnboardThermistorCurrentLimiter fet_thermistors[AXIS_COUNT] = {
+    {
         15, // adc_channel
         &fet_thermistor_poly_coeffs[0], // coefficients
         fet_thermistor_num_coeffs // num_coeffs
+    }, {
+#if HW_VERSION_MAJOR == 3 && HW_VERSION_MINOR >= 3
+        4, // adc_channel
+#else
+        1, // adc_channel
+#endif
+        &fet_thermistor_poly_coeffs[0], // coefficients
+        fet_thermistor_num_coeffs // num_coeffs
+    }
 };
 
-OffboardThermistorCurrentLimiter motor_thermistors;
+OffboardThermistorCurrentLimiter motor_thermistors[AXIS_COUNT];
 
-Motor motors = {
+// 电机驱动
+Motor motors[AXIS_COUNT] = {
+    {
         &htim1, // timer
         0b110, // current_sensor_mask
         1.0f / SHUNT_RESISTANCE, // shunt_conductance [S]
         m0_gate_driver, // gate_driver
         m0_gate_driver, // opamp
-        fet_thermistors,
-        motor_thermistors,
+        fet_thermistors[0],
+        motor_thermistors[0]
+    },
+    {
+        &htim8, // timer
+        0b110, // current_sensor_mask
+        1.0f / SHUNT_RESISTANCE, // shunt_conductance [S]
+        m1_gate_driver, // gate_driver
+        m1_gate_driver, // opamp
+        fet_thermistors[1],
+        motor_thermistors[1]
+    }
 };
 
-Encoder encoders = {
+// 编码器口
+Encoder encoders[AXIS_COUNT] = {
+    {
         &htim3, // timer
         {M0_ENC_Z_GPIO_Port, M0_ENC_Z_Pin}, // index_gpio
         {M0_ENC_A_GPIO_Port, M0_ENC_A_Pin}, // hallA_gpio
         {M0_ENC_B_GPIO_Port, M0_ENC_B_Pin}, // hallB_gpio
         {M0_ENC_Z_GPIO_Port, M0_ENC_Z_Pin}, // hallC_gpio
         &spi3_arbiter // spi_arbiter
+    },
+    {
+        &htim4, // timer
+        {M1_ENC_Z_GPIO_Port, M1_ENC_Z_Pin}, // index_gpio
+        {M1_ENC_A_GPIO_Port, M1_ENC_A_Pin}, // hallA_gpio
+        {M1_ENC_B_GPIO_Port, M1_ENC_B_Pin}, // hallB_gpio
+        {M1_ENC_Z_GPIO_Port, M1_ENC_Z_Pin}, // hallC_gpio
+        &spi3_arbiter // spi_arbiter
+    }
 };
 
 // TODO: this has no hardware dependency and should be allocated depending on config
-Endstop endstops[2];
-MechanicalBrake mechanical_brakes;
+Endstop endstops[2 * AXIS_COUNT];
+MechanicalBrake mechanical_brakes[AXIS_COUNT];
 
-SensorlessEstimator sensorless_estimators;
-Controller controllers;
-TrapezoidalTrajectory trap;
+SensorlessEstimator sensorless_estimators[AXIS_COUNT];
+Controller controllers[AXIS_COUNT];
+TrapezoidalTrajectory trap[AXIS_COUNT];
 
-Axis axes{
+std::array<Axis, AXIS_COUNT> axes{{
+    {
         0, // axis_num
         1, // step_gpio_pin
         2, // dir_gpio_pin
         (osPriority)(osPriorityHigh + (osPriority)1), // thread_priority
-        encoders, // encoder
-        sensorless_estimators, // sensorless_estimator
-        controllers, // controller
-        motors, // motor
-        trap, // trap
+        encoders[0], // encoder
+        sensorless_estimators[0], // sensorless_estimator
+        controllers[0], // controller
+        motors[0], // motor
+        trap[0], // trap
         endstops[0], endstops[1], // min_endstop, max_endstop
-        mechanical_brakes, // mechanical brake
-};
+        mechanical_brakes[0], // mechanical brake
+    },
+    {
+        1, // axis_num
+#if HW_VERSION_MAJOR == 3 && HW_VERSION_MINOR >= 5
+        7, // step_gpio_pin
+        8, // dir_gpio_pin
+#else
+        3, // step_gpio_pin
+        4, // dir_gpio_pin
+#endif
+        osPriorityHigh, // thread_priority
+        encoders[1], // encoder
+        sensorless_estimators[1], // sensorless_estimator
+        controllers[1], // controller
+        motors[1], // motor
+        trap[1], // trap
+        endstops[2], endstops[3], // min_endstop, max_endstop
+        mechanical_brakes[1], // mechanical brake
+    },
+}};
 
 
 
@@ -238,18 +300,19 @@ bool board_init()
     MX_DMA_Init();
     MX_ADC1_Init(); // ACD1 循环调度0-15的检测 @sa low_level start_general_purpose_adc
     MX_ADC2_Init();
-    MX_TIM1_Init();
-    MX_TIM8_Init();
-    MX_TIM3_Init();
-    MX_TIM4_Init();
+    MX_TIM1_Init();// 1电机UVW
+    MX_TIM8_Init();// 2电机UVW
+    MX_TIM3_Init();// 1电机旋转编码器  Encoder encoders[AXIS_COUNT]  Stm32SpiArbiter
+    MX_TIM4_Init();// 2电机旋转编码器
     MX_SPI3_Init();
     MX_ADC3_Init();
-    MX_TIM2_Init();
-    MX_TIM5_Init();
-    MX_TIM13_Init();
+    MX_TIM2_Init();// CH3,CH4(PB10 PB11) 作为PWM输出 duty相反
+    MX_TIM5_Init();// CH3 和CH4 (PA2 PA3)捕获入口  这里刚好是PWM驱动使用的GPIO 3.4
+    MX_TIM13_Init();//T1 和T8的同步,任务耗时 // TIM13除了做同步外, 任务耗时是MEASURE_TIME
 
     // External interrupt lines are individually enabled in stm32_gpio.cpp
-    // GPIO外部中断
+    // 设置中断优先级 
+	// GPIO外部中断
     HAL_NVIC_SetPriority(EXTI0_IRQn, 1, 0);
     HAL_NVIC_EnableIRQ(EXTI0_IRQn);
     HAL_NVIC_SetPriority(EXTI1_IRQn, 1, 0);
@@ -282,7 +345,7 @@ bool board_init()
     }
 
     if (odrv.config_.enable_i2c_a) {
-        // Set up the direction GPIO as input
+        // Set up the direction GPIO as input 设置GPIO输入,数脉冲
         get_gpio(3).config(GPIO_MODE_INPUT, GPIO_PULLUP);
         get_gpio(4).config(GPIO_MODE_INPUT, GPIO_PULLUP);
         get_gpio(5).config(GPIO_MODE_INPUT, GPIO_PULLUP);
@@ -321,8 +384,10 @@ bool board_init()
     return true;
 }
 
-void start_timers() {
-    CRITICAL_SECTION() {
+void start_timers() 
+{
+    CRITICAL_SECTION() 
+    {
         // Temporarily disable ADC triggers so they don't trigger as a side
         // effect of starting the timers.
         hadc1.Instance->CR2 &= ~(ADC_CR2_JEXTEN);
@@ -332,9 +397,15 @@ void start_timers() {
         /*
         * Synchronize TIM1, TIM8 and TIM13 such that:
         *  1. The triangle waveform of TIM1 leads the triangle waveform of TIM8 by a
-        *     90° phase shift.
-        *  2. Each TIM13 reload coincides with a TIM1 lower update event.
+        *     90° phase shift. IM1领先TIM8接近“1/4 周期” (还差128/2=64个clock)，这也解释了下图中Ln391中的90度问题。
+        *  2. Each TIM13 reload coincides with a TIM1 lower update event. TIM13重装时间和TIM1的下溢更新事件高度重合
+        * TIM1初始值为“TIM1_INIT_COUNT”，TIM8初始值为“0”。
+        * TIM1领先TIM8接近“1/4 周期” (还差128/2=64个clock)
         * 
+        * TIM13的时钟来源是：APB1之定时器时钟（84MHz）
+        * 而TIM1和TIM8的时钟来源于：APB2之定时器时钟（168MHz）
+        * TIM13的reload频率和TIM1的低溢出“更新中断频率”是一致的，
+        * 但是TIM13的初始计数值落后TIM1，落后了“TIM1_INIT_COUNT/2”也就是(3500/2-128)/2=811
         * 1. 停止TIM1、TIM8以及TIM13的计数且设置好它们的初始计数值。
         * 2. 然后以最快的“原子”指令方式（关闭中断+最少指令）、近乎同时地启动这三个定时器。
         * 3. TIM1初始值为“TIM1_INIT_COUNT”，TIM8初始值为“0”。 TIM1领先TIM8接近“1/4 周期” (还差128/2=64个clock)，
@@ -348,13 +419,13 @@ void start_timers() {
         hadc2.Instance->CR2 |= (ADC_EXTERNALTRIGCONVEDGE_RISING | ADC_EXTERNALTRIGINJECCONVEDGE_RISING);
         hadc3.Instance->CR2 |= (ADC_EXTERNALTRIGCONVEDGE_RISING | ADC_EXTERNALTRIGINJECCONVEDGE_RISING);
 
-        __HAL_ADC_CLEAR_FLAG(&hadc1, ADC_FLAG_JEOC);
+        __HAL_ADC_CLEAR_FLAG(&hadc1, ADC_FLAG_JEOC);// 注入转换结束标志
         __HAL_ADC_CLEAR_FLAG(&hadc2, ADC_FLAG_JEOC);
         __HAL_ADC_CLEAR_FLAG(&hadc3, ADC_FLAG_JEOC);
-        __HAL_ADC_CLEAR_FLAG(&hadc1, ADC_FLAG_EOC);
+        __HAL_ADC_CLEAR_FLAG(&hadc1, ADC_FLAG_EOC);// 转换结束标志
         __HAL_ADC_CLEAR_FLAG(&hadc2, ADC_FLAG_EOC);
         __HAL_ADC_CLEAR_FLAG(&hadc3, ADC_FLAG_EOC);
-        __HAL_ADC_CLEAR_FLAG(&hadc1, ADC_FLAG_OVR);
+        __HAL_ADC_CLEAR_FLAG(&hadc1, ADC_FLAG_OVR);// DMA溢出
         __HAL_ADC_CLEAR_FLAG(&hadc2, ADC_FLAG_OVR);
         __HAL_ADC_CLEAR_FLAG(&hadc3, ADC_FLAG_OVR);
         
@@ -363,10 +434,11 @@ void start_timers() {
     }
 }
 
-static bool fetch_and_reset_adcs(
+// 获取电压?
+static bool fetch_and_reset_adcs
+(
         std::optional<Iph_ABC_t>* current0,
-        std::optional<Iph_ABC_t>* current1) 
-{
+        std::optional<Iph_ABC_t>* current1) {
     bool all_adcs_done = (ADC1->SR & ADC_SR_JEOC) == ADC_SR_JEOC
         && (ADC2->SR & (ADC_SR_EOC | ADC_SR_JEOC)) == (ADC_SR_EOC | ADC_SR_JEOC)
         && (ADC3->SR & (ADC_SR_EOC | ADC_SR_JEOC)) == (ADC_SR_EOC | ADC_SR_JEOC);
@@ -374,18 +446,27 @@ static bool fetch_and_reset_adcs(
         return false;
     }
 
+    // 采集的总线电压
     vbus_sense_adc_cb(ADC1->JDR1);
-
-    if (m0_gate_driver.is_ready()) 
-    {
-        std::optional<float> phB = motors.phase_current_from_adcval(ADC2->JDR1);
-        std::optional<float> phC = motors.phase_current_from_adcval(ADC3->JDR1);
-        if (phB.has_value() && phC.has_value()) 
-        {
+    // 星型连接
+    // 采集M0电机的相电压是注入式，而采样M1电机的相电压是规则式。
+    if (m0_gate_driver.is_ready()) {
+        std::optional<float> phB = motors[0].phase_current_from_adcval(ADC2->JDR1);// JDR1 注入数据寄存器
+        std::optional<float> phC = motors[0].phase_current_from_adcval(ADC3->JDR1);
+        if (phB.has_value() && phC.has_value()) {
             *current0 = {-*phB - *phC, *phB, *phC};
         }
     }
 
+    if (m1_gate_driver.is_ready()) {
+        std::optional<float> phB = motors[1].phase_current_from_adcval(ADC2->DR); // 规则数据寄存器
+        std::optional<float> phC = motors[1].phase_current_from_adcval(ADC3->DR);
+        if (phB.has_value() && phC.has_value()) {
+            *current1 = {-*phB - *phC, *phB, *phC};
+        }
+    }
+    
+    // 状态寄存器
     ADC1->SR = ~(ADC_SR_JEOC);
     ADC2->SR = ~(ADC_SR_EOC | ADC_SR_JEOC | ADC_SR_OVR);
     ADC3->SR = ~(ADC_SR_EOC | ADC_SR_JEOC | ADC_SR_OVR);
@@ -428,24 +509,29 @@ void TIM8_UP_TIM13_IRQHandler(void)
 
     // If the corresponding timer is counting up, we just sampled in SVM vector 0, i.e. real current
     // If we are counting down, we just sampled in SVM vector 7, with zero current
+    // 因为中断肯定是一次上溢一次下溢，就是检测是否漏掉了一次中断的判断 
+    // 因为MX_TIM1_Init  TIM_1_8_RCR=2
     bool counting_down = TIM8->CR1 & TIM_CR1_DIR;
 
-    bool timer_update_missed = (counting_down_ == counting_down);
-    if (timer_update_missed) 
-    {
-        motors.disarm_with_error(Motor::ERROR_TIMER_UPDATE_MISSED);
+    bool timer_update_missed = (counting_down_ == counting_down);//如果上一次和这一次是同一个沿,就是timer_update_missed
+    if (timer_update_missed) {
+        motors[0].disarm_with_error(Motor::ERROR_TIMER_UPDATE_MISSED);
+        motors[1].disarm_with_error(Motor::ERROR_TIMER_UPDATE_MISSED);
         return;
     }
     counting_down_ = counting_down;
 
+    // 修改时间戳“timestamp_”为下一次中断时间点
+    //“TIM_1_8_PERIOD_CLOCKS”是半周期的clock数
+    // 这里是3个"半周期" 3500*3*(1/168M)(单位:s) = 62.5(us)
     timestamp_ += TIM_1_8_PERIOD_CLOCKS * (TIM_1_8_RCR + 1);
 
     if (!counting_down) 
-    {
+    {// A块 A比B时间长.因为有sampling_cb
         TaskTimer::enabled = odrv.task_timers_armed_;
         // Run sampling handlers and kick off control tasks when TIM8 is
         // counting up.
-        odrv.sampling_cb();// 采样
+        odrv.sampling_cb();// 采样encoder  sample_now
         NVIC->STIR = ControlLoop_IRQn; // ControlLoop_IRQHandler 软触发控制中断
     } 
     else 
@@ -463,8 +549,11 @@ void TIM8_UP_TIM13_IRQHandler(void)
     }
 }
 
+// “ControlLoop_IRQn”的中断优先级别相对于“TIM8_UP_TIM13_IRQHandler”更低！
+// 也就是说即使是在“TIM8_UP_TIM13_IRQHandler”中触发的软中断，
+// 这个软中断的执行也是要等到“TIM8_UP_TIM13_IRQHandler”退出后才会被执行。
 void ControlLoop_IRQHandler(void) 
-{
+{// C块 C会被A之后启动,然后会被B打断一次.
     COUNT_IRQ(ControlLoop_IRQn);
     uint32_t timestamp = timestamp_;
 
@@ -472,9 +561,16 @@ void ControlLoop_IRQHandler(void)
     std::optional<Iph_ABC_t> current0;
     std::optional<Iph_ABC_t> current1;
 
-    if (!fetch_and_reset_adcs(&current0, &current1)) 
-    {
-        motors.disarm_with_error(Motor::ERROR_BAD_TIMING);
+
+//   1）TIM1的更新事件会触发ADC1 ~ADC3的注入组自动采集，会采集出Vbus，M0电机的B相和C相的电压
+//   2）TIM8的更新事件会触发ADC2和ADC3的规则组的自动采集，会采集出M1电机的B相和C相的电压
+//   3）软件中没有单独针对TIM1的Update中断进行处理，只有TIM8的中断“TIM8_UP_TIM13_IRQHandler”，
+//      在里面将TIM1触发的注入组和TIM8触发的规则组采集出来的数据一起处理。
+
+    // 获得ADC测量 获取ADC采集出来的M0和M1的B、C相电压，A相电压通过0-(B+C)获得
+    if (!fetch_and_reset_adcs(&current0, &current1)) {
+        motors[0].disarm_with_error(Motor::ERROR_BAD_TIMING);
+        motors[1].disarm_with_error(Motor::ERROR_BAD_TIMING);
     }
 
     // If the motor FETs are not switching then we can't measure the current
@@ -492,34 +588,46 @@ void ControlLoop_IRQHandler(void)
     }
 
     // 电压电流检测 并传给FOC控制模块
-    motors.current_meas_cb(timestamp - TIM1_INIT_COUNT, current0);
+    // 检测一下电流是否异常（比如超过限制电流值）等等安全检查，然后调用“on_mesurement()”，
+    // 通过获取的相电压(IA 、IB 和Ic )计算出Iα 和Iβ 。
+    motors[0].current_meas_cb(timestamp - TIM1_INIT_COUNT, current0);
+    motors[1].current_meas_cb(timestamp, current1);
 
     // 运行控制循环 这里有调用 Motor::update 设置了Idq_setpoint_和Vdq_setpoint_
     odrv.control_loop_cb(timestamp);
 
     // By this time the ADCs for both M0 and M1 should have fired again. But
     // let's wait for them just to be sure.
-    MEASURE_TIME(odrv.task_times_.dc_calib_wait) 
-    {
+    // 等待ADC转换完成，再次获取一次电流值
+    // 这里其实就是在等 B块运行一次.
+    MEASURE_TIME(odrv.task_times_.dc_calib_wait) {
         while (!(ADC2->SR & ADC_SR_EOC));
     }
 
-    if (!fetch_and_reset_adcs(&current0, &current1)) 
-    {
-        motors.disarm_with_error(Motor::ERROR_BAD_TIMING);
+    if (!fetch_and_reset_adcs(&current0, &current1)) {
+        motors[0].disarm_with_error(Motor::ERROR_BAD_TIMING);
+        motors[1].disarm_with_error(Motor::ERROR_BAD_TIMING);
     }
 
     // 更新DC_calib_   这个函数得到的结果,只给 current_meas_cb 检查是否超max
-    motors.dc_calib_cb(timestamp + TIM_1_8_PERIOD_CLOCKS * (TIM_1_8_RCR + 1) - TIM1_INIT_COUNT, current0);
+    // 采取的措施是将连续N个时间点（很密）的电流值累加，然后取平均值。本次的调用就是一次时间点的值累加进去了。
+    // 电流有个特性，它不会陡变！所以这样累加再平均的写法也合理，结果也会很接近中间电位值。
+    // 另外: 注意已经改变了时间戳
+    motors[0].dc_calib_cb(timestamp + TIM_1_8_PERIOD_CLOCKS * (TIM_1_8_RCR + 1) - TIM1_INIT_COUNT, current0);
+    motors[1].dc_calib_cb(timestamp + TIM_1_8_PERIOD_CLOCKS * (TIM_1_8_RCR + 1), current1);
 
     // 调用FOC的get_output, 设置PWM
-    motors.pwm_update_cb(timestamp + 3 * TIM_1_8_PERIOD_CLOCKS * (TIM_1_8_RCR + 1) - TIM1_INIT_COUNT);
+    // FOC核心算法，最后设定好当前duty
+    motors[0].pwm_update_cb(timestamp + 3 * TIM_1_8_PERIOD_CLOCKS * (TIM_1_8_RCR + 1) - TIM1_INIT_COUNT);
+    motors[1].pwm_update_cb(timestamp + 3 * TIM_1_8_PERIOD_CLOCKS * (TIM_1_8_RCR + 1));
 
     // If we did everything right, the TIM8 update handler should have been
     // called exactly once between the start of this function and now.
+    // “ControlLoop_IRQHandler”开始执行后，中途会被“TIM8_UP_TIM13_IRQHandler”打断一次
 
     if (timestamp_ != timestamp + TIM_1_8_PERIOD_CLOCKS * (TIM_1_8_RCR + 1)) {
-        motors.disarm_with_error(Motor::ERROR_CONTROL_DEADLINE_MISSED);
+        motors[0].disarm_with_error(Motor::ERROR_CONTROL_DEADLINE_MISSED);
+        motors[1].disarm_with_error(Motor::ERROR_CONTROL_DEADLINE_MISSED);
     }
 
     odrv.task_timers_armed_ = odrv.task_timers_armed_ && !TaskTimer::enabled;

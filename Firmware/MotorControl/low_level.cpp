@@ -80,7 +80,9 @@ osThreadId analog_thread = 0;
 void safety_critical_arm_brake_resistor() 
 {
     CRITICAL_SECTION() {
-            axes.motor_.I_bus_ = 0.0f;
+        for (size_t i = 0; i < AXIS_COUNT; ++i) {
+            axes[i].motor_.I_bus_ = 0.0f;
+        }
         brake_resistor_armed = true;
 #if HW_VERSION_MAJOR == 3
         htim2.Instance->CCR3 = 0;
@@ -107,7 +109,9 @@ void safety_critical_disarm_brake_resistor()
 
     // Check necessary to prevent infinite recursion
     if (brake_resistor_was_armed) {
-            axes.motor_.disarm();
+        for (auto& axis: axes) {
+            axis.motor_.disarm();
+        }
     }
 }
 
@@ -138,31 +142,37 @@ void safety_critical_apply_brake_resistor_timings(uint32_t low_off, uint32_t hig
 
 void start_adc_pwm() 
 {
-    // Disarm motors
-        axes.motor_.disarm();
+    // Disarm motors 先停止MOTOR
+    for (auto& axis: axes) {
+        axis.motor_.disarm();
+    }
 
-        // Init PWM
+    for (Motor& motor: motors) 
+    {
+        // Init PWM 初始化PWM
         int half_load = TIM_1_8_PERIOD_CLOCKS / 2;
-        motors.timer_->Instance->CCR1 = half_load;
-        motors.timer_->Instance->CCR2 = half_load;
-        motors.timer_->Instance->CCR3 = half_load;
+        motor.timer_->Instance->CCR1 = half_load;
+        motor.timer_->Instance->CCR2 = half_load;
+        motor.timer_->Instance->CCR3 = half_load;
 
         // Enable PWM outputs (they are still masked by MOE though)
-        motors.timer_->Instance->CCER |= (TIM_CCx_ENABLE << TIM_CHANNEL_1);
-        motors.timer_->Instance->CCER |= (TIM_CCxN_ENABLE << TIM_CHANNEL_1);
-        motors.timer_->Instance->CCER |= (TIM_CCx_ENABLE << TIM_CHANNEL_2);
-        motors.timer_->Instance->CCER |= (TIM_CCxN_ENABLE << TIM_CHANNEL_2);
-        motors.timer_->Instance->CCER |= (TIM_CCx_ENABLE << TIM_CHANNEL_3);
-        motors.timer_->Instance->CCER |= (TIM_CCxN_ENABLE << TIM_CHANNEL_3);
+        // 初始化PWM输出
+        motor.timer_->Instance->CCER |= (TIM_CCx_ENABLE << TIM_CHANNEL_1);
+        motor.timer_->Instance->CCER |= (TIM_CCxN_ENABLE << TIM_CHANNEL_1);
+        motor.timer_->Instance->CCER |= (TIM_CCx_ENABLE << TIM_CHANNEL_2);
+        motor.timer_->Instance->CCER |= (TIM_CCxN_ENABLE << TIM_CHANNEL_2);
+        motor.timer_->Instance->CCER |= (TIM_CCx_ENABLE << TIM_CHANNEL_3);
+        motor.timer_->Instance->CCER |= (TIM_CCxN_ENABLE << TIM_CHANNEL_3);
+    }
 
-    // Enable ADC and interrupts
+    // Enable ADC and interrupts 使能ADC中断
     __HAL_ADC_ENABLE(&hadc1);
     __HAL_ADC_ENABLE(&hadc2);
     __HAL_ADC_ENABLE(&hadc3);
     // Warp field stabilize.
     osDelay(2);
 
-
+    // 执行时钟
     start_timers();
 
 
@@ -173,7 +183,7 @@ void start_adc_pwm()
     HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
     HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
 #endif
-
+    // 耗散电阻
     if (odrv.config_.enable_brake_resistor) 
     {
         safety_critical_arm_brake_resistor();
@@ -181,9 +191,11 @@ void start_adc_pwm()
 }
 
 // @brief ADC1 measurements are written to this buffer by DMA
+// ADC1 的测量值 由DMA完成. 16个寄存器.
 uint16_t adc_measurements_[ADC_CHANNEL_COUNT] = { 0 };
 
 // @brief Starts the general purpose ADC on the ADC1 peripheral.
+// ADC电压可以用get_adc_voltage读出来
 // The measured ADC voltages can be read with get_adc_voltage(). ADC 电压
 // 热敏电阻和用户ADC采集
 // ADC1 is set up to continuously sample all channels 0 to 15 in a
@@ -198,25 +210,25 @@ void start_general_purpose_adc()
 
     // Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
     hadc1.Instance = ADC1;
-    hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
-    hadc1.Init.Resolution = ADC_RESOLUTION_12B;
-    hadc1.Init.ScanConvMode = ENABLE;
-    hadc1.Init.ContinuousConvMode = ENABLE;
-    hadc1.Init.DiscontinuousConvMode = DISABLE;
-    hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
-    hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
-    hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-    hadc1.Init.NbrOfConversion = ADC_CHANNEL_COUNT;
-    hadc1.Init.DMAContinuousRequests = ENABLE;
-    hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+    hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;// 4分频
+    hadc1.Init.Resolution = ADC_RESOLUTION_12B;// 分辨率 12位
+    hadc1.Init.ScanConvMode = ENABLE;// 多通道 所以扫描
+    hadc1.Init.ContinuousConvMode = ENABLE;// 自动连续转换
+    hadc1.Init.DiscontinuousConvMode = DISABLE;// 不使用不连续采样模式
+    hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;// 非外触发
+    hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;// 软触发
+    hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;// 数据右对齐
+    hadc1.Init.NbrOfConversion = ADC_CHANNEL_COUNT;// 16个寄存器
+    hadc1.Init.DMAContinuousRequests = ENABLE;// 使用DMA
+    hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;// 转换结束, 单次中断
     if (HAL_ADC_Init(&hadc1) != HAL_OK) 
-    {
+	{
         odrv.misconfigured_ = true; // TODO: this is a bit of an abuse of this flag
         return;
     }
 
     // Set up sampling sequence (channel 0 ... channel 15)
-    sConfig.SamplingTime = ADC_SAMPLETIME_15CYCLES;
+    sConfig.SamplingTime = ADC_SAMPLETIME_15CYCLES;// 15个采样周期
     for (uint32_t channel = 0; channel < ADC_CHANNEL_COUNT; ++channel) 
     {
         sConfig.Channel = channel << ADC_CR1_AWDCH_Pos;
@@ -248,6 +260,7 @@ void start_general_purpose_adc()
 //  21000kHz / (15+26) / 16 = 32kHz
 // The true frequency is slightly lower because of the injected vbus
 // measurements
+// 从DMA寄存器获取数据.
 float get_adc_voltage(Stm32Gpio gpio) 
 {
     return get_adc_relative_voltage(gpio) * adc_ref_voltage;
@@ -261,6 +274,7 @@ float get_adc_relative_voltage(Stm32Gpio gpio)
 
 // @brief Given a GPIO_port and pin return the associated adc_channel.
 // returns UINT16_MAX if there is no adc_channel;
+// 返回GPIO_PIN对应的ADC channel
 uint16_t channel_from_gpio(Stm32Gpio gpio) 
 {
     uint32_t channel = UINT32_MAX;
@@ -308,6 +322,7 @@ uint16_t channel_from_gpio(Stm32Gpio gpio)
 
 // @brief Given an adc channel return the voltage as a ratio of adc_ref_voltage
 // returns -1.0f if the channel is not valid.
+// 从adc_measurements_寄存器获取对应数年在数据
 float get_adc_relative_voltage_ch(uint16_t channel) 
 {
     if (channel < ADC_CHANNEL_COUNT)
@@ -331,9 +346,11 @@ void vbus_sense_adc_cb(uint32_t adc_value)
 void update_brake_current() 
 {
     float Ibus_sum = 0.0f;
-    if (axes.motor_.is_armed_) 
-    {
-        Ibus_sum += axes.motor_.I_bus_;
+    for (size_t i = 0; i < AXIS_COUNT; ++i) 
+	{
+        if (axes[i].motor_.is_armed_) {
+            Ibus_sum += axes[i].motor_.I_bus_;
+        }
     }
 
     float brake_duty = 0.0f;

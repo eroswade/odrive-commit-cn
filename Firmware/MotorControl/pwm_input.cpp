@@ -2,7 +2,8 @@
 #include "pwm_input.hpp"
 #include "odrive_main.h"
 
-void PwmInput::init() {
+void PwmInput::init() 
+{
     TIM_IC_InitTypeDef sConfigIC;
     sConfigIC.ICPolarity = TIM_INPUTCHANNELPOLARITY_BOTHEDGE;
     sConfigIC.ICSelection = TIM_ICSELECTION_DIRECTTI;
@@ -11,7 +12,8 @@ void PwmInput::init() {
 
     uint32_t channels[] = {TIM_CHANNEL_1, TIM_CHANNEL_2, TIM_CHANNEL_3, TIM_CHANNEL_4};
 
-    for (size_t i = 0; i < 4; ++i) {
+    for (size_t i = 0; i < 4; ++i) 
+    {
         if (!fibre::is_endpoint_ref_valid(odrv.config_.pwm_mappings[i].endpoint))
             continue;
         HAL_TIM_IC_ConfigChannel(htim_, &sConfigIC, channels[i]);

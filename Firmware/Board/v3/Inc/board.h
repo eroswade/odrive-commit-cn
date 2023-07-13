@@ -89,10 +89,10 @@ using TOpAmp = Drv8301;
 #include <MotorControl/motor.hpp>
 #include <MotorControl/encoder.hpp>
 
-extern Axis axes;
-extern Motor motors;
-extern OnboardThermistorCurrentLimiter fet_thermistors;
-extern Encoder encoders;
+extern std::array<Axis, AXIS_COUNT> axes;
+extern Motor motors[AXIS_COUNT];
+extern OnboardThermistorCurrentLimiter fet_thermistors[AXIS_COUNT];
+extern Encoder encoders[AXIS_COUNT];
 extern Stm32Gpio gpios[GPIO_COUNT];
 
 struct GpioFunction { int mode = 0; uint8_t alternate_function = 0xff; };
@@ -111,7 +111,7 @@ extern PwmInput pwm0_input;
 
 // Period in [s]
 #define CURRENT_MEAS_PERIOD ( (float)2*TIM_1_8_PERIOD_CLOCKS*(TIM_1_8_RCR+1) / (float)TIM_1_8_CLOCK_HZ )
-static const float current_meas_period = CURRENT_MEAS_PERIOD; // ʱ��Ƶ�� 0.000125
+static const float current_meas_period = CURRENT_MEAS_PERIOD; // 时钟频率 0.000125
 
 // Frequency in [Hz]
 #define CURRENT_MEAS_HZ ( (float)(TIM_1_8_CLOCK_HZ) / (float)(2*TIM_1_8_PERIOD_CLOCKS*(TIM_1_8_RCR+1)) )

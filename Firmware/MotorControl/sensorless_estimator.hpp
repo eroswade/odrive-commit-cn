@@ -3,9 +3,11 @@
 
 #include "component.hpp"
 
-class SensorlessEstimator : public ODriveIntf::SensorlessEstimatorIntf {
+class SensorlessEstimator : public ODriveIntf::SensorlessEstimatorIntf 
+{
 public:
-    struct Config_t {
+    struct Config_t 
+    {
         float observer_gain = 1000.0f; // [rad/s]
         float pll_bandwidth = 1000.0f;  // [rad/s]
         float pm_flux_linkage = 1.58e-3f; // [V / (rad/s)]  { 5.51328895422 / (<pole pairs> * <rpm/v>) }

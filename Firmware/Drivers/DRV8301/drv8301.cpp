@@ -18,7 +18,9 @@ const SPI_InitTypeDef Drv8301::spi_config_ = {
     .CRCPolynomial = 10,
 };
 
-bool Drv8301::config(float requested_gain, float* actual_gain) {
+// 选择驱动电流 
+bool Drv8301::config(float requested_gain, float* actual_gain) 
+{
     // Calculate gain setting: Snap down to have equal or larger range as
     // requested or largest possible range otherwise
 
@@ -28,34 +30,50 @@ bool Drv8301::config(float requested_gain, float* actual_gain) {
     // 20V/V on 666uOhm gives a range of +/- 110A
     // 40V/V on 666uOhm gives a range of +/- 55A
 
+    // VO = Vref/2 - G*(SNx-SPx)
+    //  Vref = 3.3V
+    //  G  为设置的GAIN. 10 20 40 80
+    //  SNx 
+    //  SPx
+    //  V0 为输出.就是测量到的电压.
+
+
     uint16_t gain_setting = 3;
     float gain_choices[] = {10.0f, 20.0f, 40.0f, 80.0f};
+    // 计算Gain 由requested_gain定义从gain_choices里取哪个.
     while (gain_setting && (gain_choices[gain_setting] > requested_gain)) {
         gain_setting--;
     }
 
+    // 获得最后的选择.
     if (actual_gain) {
         *actual_gain = gain_choices[gain_setting];
     }
 
     RegisterFile new_config;
 
+    // 如果配置不相同
+    // address 0x02 
+    // 电流超出检测 OvercurrentTrip = OC_ADJ_SET/MOSFET Rds   Rds = 4.7毫欧
+    // VDS = 21--> 0.73V 
+    // OTA = 0.73/0.0047 = 155A
     new_config.control_register_1 =
-          (21 << 6) // Overcurrent set to approximately 150A at 100degC. This may need tweaking.
-        | (0b01 << 4) // OCP_MODE: latch shut down
-        | (0b0 << 3) // 6x PWM mode
-        | (0b0 << 2) // don't reset latched faults
-        | (0b00 << 0); // gate-drive peak current: 1.7A
+          (21 << 6) // Overcurrent set to approximately 150A at 100degC. This may need tweaking. // Vds 0.73  
+        | (0b01 << 4) // OCP_MODE: latch shut down // 另外一个为CURRENT LIMIT
+        | (0b0 << 3) // 6x PWM mode 另一个选项为3PWM
+        | (0b0 << 2) // don't reset latched faults // GATE_RESET设置为NORMAL MODE
+        | (0b00 << 0); // gate-drive peak current: 1.7A  设置GATE_CURRENT
 
+    // address 0x03 
     new_config.control_register_2 =
-          (0b0 << 6) // OC_TOFF: cycle by cycle
-        | (0b00 << 4) // calibration off (normal operation)
-        | (gain_setting << 2) // select gain
-        | (0b00 << 0); // report both over temperature and over current on nOCTW pin
+          (0b0 << 6) // OC_TOFF: cycle by cycle 另一个为off time cycle
+        | (0b00 << 4) // calibration off (normal operation) DC_CAL_CH1和CH2, 都关闭calibration OFF
+        | (gain_setting << 2) // select gain 选择GAIN
+        | (0b00 << 0); // report both over temperature and over current on nOCTW pin  OCTW_MODE(温度超过,或者电流超, 都上报)
 
     bool regs_equal = (regs_.control_register_1 == new_config.control_register_1)
                    && (regs_.control_register_2 == new_config.control_register_2);
-
+    // 重新设置配置.
     if (!regs_equal) {
         regs_ = new_config;
         state_ = kStateUninitialized;
