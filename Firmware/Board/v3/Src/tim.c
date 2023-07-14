@@ -88,18 +88,28 @@ void MX_TIM1_Init(void)
     TIM_OC_InitTypeDef sConfigOC;
     TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig;
 
-  //168MHz/(3500*2) = 24KHz 
-  htim1.Instance = TIM1;
-  htim1.Init.Prescaler = 0;
-  htim1.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED3;
-  htim1.Init.Period = TIM_1_8_PERIOD_CLOCKS;//3500
-  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  // TIM8控制的pwm波形为中间对齐，这里设置RCR=2，也就是每（2+1）次更新会中断一次。
-  htim1.Init.RepetitionCounter = TIM_1_8_RCR;//2  
-  if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
-  {
+    ///////////////////////////////////////////////////////////////////////
+    // 以下配置外部时钟及分频
+
+    //168MHz/(3500(TIM_1_8_PERIOD_CLOCKS)*2) = 24KHz  因为中心模式(TIM_COUNTERMODE_CENTERALIGNED3)： 0-3500 -0   7000个CYCLES
+    // 24/（RepetitionCounter+1）=24/(2(TIM_1_8_RCR)+1) = 8K
+    // 注意这里的PWM。 因为是中心对齐， 所以每次在点到CCR的数(也就是apply_pwm_timings设置的) 都会换一次向。
+    // 所以PWM为设置的高平的时间是(3500-CCR)*2的cycles：
+    //          因为0*CCR为低电平(TIM_OCMODE_PWM2) CCR-3500 - 3500-CCR为高电平 ， CCR-0为低电平。
+    // 在0-3500-0的过程中， 中断计数被触发2次。 由于 TIM_1_8_RCR， 所以3次中断计数，会触发一次中断函数（TIM8的）
+    // 所以WAVE FORM 和 timing_diagram_v3.png 显示的一样。
+    //                  注意： __M__代表代码里的current_meas_cb   __C__代表dc_calib_cb     __A__代表pwm_update_cb
+    htim1.Instance = TIM1;
+    htim1.Init.Prescaler = 0;
+    htim1.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED3;// 中心对齐 CMS寄存器
+    htim1.Init.Period = TIM_1_8_PERIOD_CLOCKS;//3500  // Auto-Reload Register   ARR寄存器 重装
+    htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    // TIM8控制的pwm波形为中间对齐，这里设置RCR=2，也就是每（2+1）次更新会中断一次。
+    htim1.Init.RepetitionCounter = TIM_1_8_RCR;//2   多少次进一次中断 所以中断是8K， 由TIM8完成
+    if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
+    {
     _Error_Handler(__FILE__, __LINE__);
-  }
+    }
 
     sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
     if (HAL_TIM_ConfigClockSource(&htim1, &sClockSourceConfig) != HAL_OK)
@@ -124,7 +134,9 @@ void MX_TIM1_Init(void)
         _Error_Handler(__FILE__, __LINE__);
     }
 
-    sConfigOC.OCMode = TIM_OCMODE_PWM2;
+    // CCR为捕获寄存器。 CNT为计数寄存器。 
+    // 注意 CCR在  @apply_pwm_timings 里被设置  motor.cpp里
+    sConfigOC.OCMode = TIM_OCMODE_PWM2;// PWM模式2， CNT>CCR为高电平。   模式为1的时候 CNT<CCR为高电平。
     sConfigOC.Pulse = 0;
     sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
     sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;

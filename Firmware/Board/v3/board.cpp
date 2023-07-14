@@ -511,7 +511,7 @@ void TIM8_UP_TIM13_IRQHandler(void)
     // If we are counting down, we just sampled in SVM vector 7, with zero current
     // 因为中断肯定是一次上溢一次下溢，就是检测是否漏掉了一次中断的判断 
     // 因为MX_TIM1_Init  TIM_1_8_RCR=2
-    bool counting_down = TIM8->CR1 & TIM_CR1_DIR;
+    bool counting_down = TIM8->CR1 & TIM_CR1_DIR;// 获得当前的沿位  CR1中的DIR位
 
     bool timer_update_missed = (counting_down_ == counting_down);//如果上一次和这一次是同一个沿,就是timer_update_missed
     if (timer_update_missed) {
