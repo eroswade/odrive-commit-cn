@@ -138,8 +138,8 @@ void MX_TIM1_Init(void)
     // 注意 CCR在  @apply_pwm_timings 里被设置  motor.cpp里
     sConfigOC.OCMode = TIM_OCMODE_PWM2;// PWM模式2， CNT>CCR为高电平。   模式为1的时候 CNT<CCR为高电平。
     sConfigOC.Pulse = 0;
-    sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-    sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
+    sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH; // 输出OCx波形为凹形
+    sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH; // 输出OCxN波形为凸形
     sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
     sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
     sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
@@ -164,12 +164,13 @@ void MX_TIM1_Init(void)
         _Error_Handler(__FILE__, __LINE__);
     }
 
-    sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_ENABLE;
-    sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_ENABLE;
-    sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
-    sBreakDeadTimeConfig.DeadTime = TIM_1_8_DEADTIME_CLOCKS;
-    sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
-    sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
+    // 手册 P583
+    sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_ENABLE; // OSSR Off-state selection for Run mode
+    sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_ENABLE; // OSSI  Off-state selection for Idle mode
+    sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF; // No bit is write protected.
+    sBreakDeadTimeConfig.DeadTime = TIM_1_8_DEADTIME_CLOCKS;// 20 这个为CYCLES。 1/168000000*20 = 119 ns
+    sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;//  Break inputs (BRK and CSS clock failure event) disabled
+    sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH; // BKP 被设置为1   Break input BRK is active high
     sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE;
     if (HAL_TIMEx_ConfigBreakDeadTime(&htim1, &sBreakDeadTimeConfig) != HAL_OK)
     {

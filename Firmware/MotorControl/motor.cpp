@@ -231,6 +231,7 @@ bool Motor::arm(PhaseControlLaw<3>* control_law)
  * prior to that.
  * 
  * @param tentative: If true, the update is not counted as "refresh".
+ * @sa pwm_update_cb
  */
 void Motor::apply_pwm_timings(uint16_t timings[3], bool tentative) 
 {
@@ -274,8 +275,10 @@ void Motor::apply_pwm_timings(uint16_t timings[3], bool tentative)
         tim->CCR2 = timings[1];
         tim->CCR3 = timings[2];
         
-        if (!tentative) {
-            if (is_armed_) {
+        if (!tentative) 
+        {
+            if (is_armed_) 
+            {
                 // Set the Automatic Output Enable so that the Master Output Enable
                 // bit will be automatically enabled on the next update event.
                 tim->BDTR |= TIM_BDTR_AOE;
