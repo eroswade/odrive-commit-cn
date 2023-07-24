@@ -54,9 +54,9 @@ bool SensorlessEstimator::update()
         return false;
     }
 
-    // Clarke transform Clarke±ä»»
+    // Clarke transform Clarkeå˜æ¢
     // output: Iab,  
-    // input: 3¸ö²âÁ¿µÃµ½µÄÏàµçÁ÷
+    // input: 3ä¸ªæµ‹é‡å¾—åˆ°çš„ç›¸ç”µæµ
     float I_alpha_beta[2] = {
         current_meas->phA,
         one_by_sqrt3 * (current_meas->phB - current_meas->phC)};
@@ -65,18 +65,18 @@ bool SensorlessEstimator::update()
     float eta[2];
     for (int i = 0; i <= 1; ++i) 
     {
-        // y is the total flux-driving voltage (see paper eqn 4) ´ÅÁ´Çı¶¯µçÑ¹ ÂÛÎÄ¹«Ê½4
+        // y is the total flux-driving voltage (see paper eqn 4) ç£é“¾é©±åŠ¨ç”µå‹ è®ºæ–‡å…¬å¼4
         float y = -axis_->motor_.config_.phase_resistance * I_alpha_beta[i] + V_alpha_beta_memory_[i];
-        // flux dynamics (prediction) ´ÅÁ´Ô¤²â
+        // flux dynamics (prediction) ç£é“¾é¢„æµ‹
         float x_dot = y;
-        // integrate prediction to current timestep Ê±¼ä´Á*µçÑ¹
+        // integrate prediction to current timestep æ—¶é—´æˆ³*ç”µå‹
         flux_state_[i] += x_dot * current_meas_period;
 
-        // eta is the estimated permanent magnet flux (see paper eqn 6) Ô¤²â´ÅÍ¨Á¿.
+        // eta is the estimated permanent magnet flux (see paper eqn 6) é¢„æµ‹ç£é€šé‡.
         eta[i] = flux_state_[i] - axis_->motor_.config_.phase_inductance * I_alpha_beta[i];
     }
 
-    // Non-linear observer (see paper eqn 8): ·ÇÏßĞÔ´ÅÁ´
+    // Non-linear observer (see paper eqn 8): éçº¿æ€§ç£é“¾
     float pm_flux_sqr = config_.pm_flux_linkage * config_.pm_flux_linkage;
     float est_pm_flux_sqr = eta[0] * eta[0] + eta[1] * eta[1];
     float bandwidth_factor = 1.0f / pm_flux_sqr;
@@ -94,20 +94,20 @@ bool SensorlessEstimator::update()
     }
 
     // Flux state estimation done, store V_alpha_beta for next timestep
-    // ´ÅÍ¨¼ÆËãÍê³É, ËãVab,ÓÃÀ´ºóĞø¼ÆËã.
+    // ç£é€šè®¡ç®—å®Œæˆ, ç®—Vab,ç”¨æ¥åç»­è®¡ç®—.
     V_alpha_beta_memory_[0] = axis_->motor_.current_control_.final_v_alpha_;
     V_alpha_beta_memory_[1] = axis_->motor_.current_control_.final_v_beta_;
 
     float phase_vel = phase_vel_.previous().value_or(0.0f);
 
-    // predict PLL phase with velocity ÒÔËÙ¶ÈÔ¤²âÎ»ÖÃ
+    // predict PLL phase with velocity ä»¥é€Ÿåº¦é¢„æµ‹ä½ç½®
     pll_pos_ = wrap_pm_pi(pll_pos_ + current_meas_period * phase_vel);
-    // update PLL phase with observer permanent magnet phase ´ÅÁ´¼ÆËãÏòÁ¿½Ç.
+    // update PLL phase with observer permanent magnet phase ç£é“¾è®¡ç®—å‘é‡è§’.
     float phase = fast_atan2(eta[1], eta[0]);
-    float delta_phase = wrap_pm_pi(phase - pll_pos_);// Æ«ÒÆ½Ç¶È = ´ÅÁ´»ñµÃÏòÁ¿½Ç-ËÙ¶ÈËµÍ¨ÏòÁ¿½Ç.
-    // ¸üĞÂPLLÎ»ÖÃ
+    float delta_phase = wrap_pm_pi(phase - pll_pos_);// åç§»è§’åº¦ = ç£é“¾è·å¾—å‘é‡è§’-é€Ÿåº¦è¯´é€šå‘é‡è§’.
+    // æ›´æ–°PLLä½ç½®
     pll_pos_ = wrap_pm_pi(pll_pos_ + current_meas_period * pll_kp * delta_phase);
-    // update PLL velocity ¸üĞÂPLL ËÙ¶È
+    // update PLL velocity æ›´æ–°PLL é€Ÿåº¦
     phase_vel += current_meas_period * pll_ki * delta_phase;
 
     // set outputs
