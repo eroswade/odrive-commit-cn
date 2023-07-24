@@ -18,7 +18,7 @@ const SPI_InitTypeDef Drv8301::spi_config_ = {
     .CRCPolynomial = 10,
 };
 
-// Ñ¡ÔñÇý¶¯µçÁ÷ 
+// é€‰æ‹©é©±åŠ¨ç”µæµ 
 bool Drv8301::config(float requested_gain, float* actual_gain) 
 {
     // Calculate gain setting: Snap down to have equal or larger range as
@@ -32,48 +32,48 @@ bool Drv8301::config(float requested_gain, float* actual_gain)
 
     // VO = Vref/2 - G*(SNx-SPx)
     //  Vref = 3.3V
-    //  G  ÎªÉèÖÃµÄGAIN. 10 20 40 80
+    //  G  ä¸ºè®¾ç½®çš„GAIN. 10 20 40 80
     //  SNx 
     //  SPx
-    //  V0 ÎªÊä³ö.¾ÍÊÇ²âÁ¿µ½µÄµçÑ¹.
+    //  V0 ä¸ºè¾“å‡º.å°±æ˜¯æµ‹é‡åˆ°çš„ç”µåŽ‹.
 
 
     uint16_t gain_setting = 3;
     float gain_choices[] = {10.0f, 20.0f, 40.0f, 80.0f};
-    // ¼ÆËãGain ÓÉrequested_gain¶¨Òå´Ógain_choicesÀïÈ¡ÄÄ¸ö.
+    // è®¡ç®—Gain ç”±requested_gainå®šä¹‰ä»Žgain_choicesé‡Œå–å“ªä¸ª.
     while (gain_setting && (gain_choices[gain_setting] > requested_gain)) {
         gain_setting--;
     }
 
-    // »ñµÃ×îºóµÄÑ¡Ôñ.
+    // èŽ·å¾—æœ€åŽçš„é€‰æ‹©.
     if (actual_gain) {
         *actual_gain = gain_choices[gain_setting];
     }
 
     RegisterFile new_config;
 
-    // Èç¹ûÅäÖÃ²»ÏàÍ¬
+    // å¦‚æžœé…ç½®ä¸ç›¸åŒ
     // address 0x02 
-    // µçÁ÷³¬³ö¼ì²â OvercurrentTrip = OC_ADJ_SET/MOSFET Rds   Rds = 4.7ºÁÅ·
+    // ç”µæµè¶…å‡ºæ£€æµ‹ OvercurrentTrip = OC_ADJ_SET/MOSFET Rds   Rds = 4.7æ¯«æ¬§
     // VDS = 21--> 0.73V 
     // OTA = 0.73/0.0047 = 155A
     new_config.control_register_1 =
           (21 << 6) // Overcurrent set to approximately 150A at 100degC. This may need tweaking. // Vds 0.73  
-        | (0b01 << 4) // OCP_MODE: latch shut down // ÁíÍâÒ»¸öÎªCURRENT LIMIT
-        | (0b0 << 3) // 6x PWM mode ÁíÒ»¸öÑ¡ÏîÎª3PWM
-        | (0b0 << 2) // don't reset latched faults // GATE_RESETÉèÖÃÎªNORMAL MODE
-        | (0b00 << 0); // gate-drive peak current: 1.7A  ÉèÖÃGATE_CURRENT
+        | (0b01 << 4) // OCP_MODE: latch shut down // å¦å¤–ä¸€ä¸ªä¸ºCURRENT LIMIT
+        | (0b0 << 3) // 6x PWM mode å¦ä¸€ä¸ªé€‰é¡¹ä¸º3PWM
+        | (0b0 << 2) // don't reset latched faults // GATE_RESETè®¾ç½®ä¸ºNORMAL MODE
+        | (0b00 << 0); // gate-drive peak current: 1.7A  è®¾ç½®GATE_CURRENT
 
     // address 0x03 
     new_config.control_register_2 =
-          (0b0 << 6) // OC_TOFF: cycle by cycle ÁíÒ»¸öÎªoff time cycle
-        | (0b00 << 4) // calibration off (normal operation) DC_CAL_CH1ºÍCH2, ¶¼¹Ø±Õcalibration OFF
-        | (gain_setting << 2) // select gain Ñ¡ÔñGAIN
-        | (0b00 << 0); // report both over temperature and over current on nOCTW pin  OCTW_MODE(ÎÂ¶È³¬¹ý,»òÕßµçÁ÷³¬, ¶¼ÉÏ±¨)
+          (0b0 << 6) // OC_TOFF: cycle by cycle å¦ä¸€ä¸ªä¸ºoff time cycle
+        | (0b00 << 4) // calibration off (normal operation) DC_CAL_CH1å’ŒCH2, éƒ½å…³é—­calibration OFF
+        | (gain_setting << 2) // select gain é€‰æ‹©GAIN
+        | (0b00 << 0); // report both over temperature and over current on nOCTW pin  OCTW_MODE(æ¸©åº¦è¶…è¿‡,æˆ–è€…ç”µæµè¶…, éƒ½ä¸ŠæŠ¥)
 
     bool regs_equal = (regs_.control_register_1 == new_config.control_register_1)
                    && (regs_.control_register_2 == new_config.control_register_2);
-    // ÖØÐÂÉèÖÃÅäÖÃ.
+    // é‡æ–°è®¾ç½®é…ç½®.
     if (!regs_equal) {
         regs_ = new_config;
         state_ = kStateUninitialized;

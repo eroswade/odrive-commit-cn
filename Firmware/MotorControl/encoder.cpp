@@ -206,8 +206,8 @@ bool Encoder::run_direction_find() {
     return success;
 }
 
-// »ô¶û¼«ĞÔĞ£Ñé
-// »ô¶û°²×°Îª60»òÕß120¶È. ÓĞ8¸ö×´Ì¬
+// éœå°”ææ€§æ ¡éªŒ
+// éœå°”å®‰è£…ä¸º60æˆ–è€…120åº¦. æœ‰8ä¸ªçŠ¶æ€
 bool Encoder::run_hall_polarity_calibration() 
 {
     Axis::LockinConfig_t lockin_config = axis_->config_.calibration_lockin;
@@ -272,7 +272,7 @@ bool Encoder::run_hall_polarity_calibration()
     return success;
 }
 
-// »ô¶ûÏàÎ»Ğ£Ñé
+// éœå°”ç›¸ä½æ ¡éªŒ
 bool Encoder::run_hall_phase_calibration() 
 {
     Axis::LockinConfig_t lockin_config = axis_->config_.calibration_lockin;
@@ -336,7 +336,7 @@ bool Encoder::run_hall_phase_calibration()
 // @brief Turns the motor in one direction for a bit and then in the other
 // direction in order to find the offset between the electrical phase 0
 // and the encoder state 0.
-// µç×Ó0ÏàÎ»ºÍĞı±à×´Ì¬0Ö®¼äµÄÓ³Éä¹ØÏµ
+// ç”µå­0ç›¸ä½å’Œæ—‹ç¼–çŠ¶æ€0ä¹‹é—´çš„æ˜ å°„å…³ç³»
 bool Encoder::run_offset_calibration() {
     const float start_lock_duration = 1.0f;
 
@@ -489,20 +489,20 @@ static bool decode_hall(uint8_t hall_state, int32_t* hall_cnt) {
     }
 }
 
-// ´Ó´«¸ĞÆ÷¶ÁÊı¾İ.
+// ä»ä¼ æ„Ÿå™¨è¯»æ•°æ®.
 void Encoder::sample_now() 
 {
     switch (mode_) 
     {
-        case MODE_INCREMENTAL: // ÔöÁ¿±àÂëÆ÷
+        case MODE_INCREMENTAL: // å¢é‡ç¼–ç å™¨
         {
             tim_cnt_sample_ = (int16_t)timer_->Instance->CNT;
         } break;
 
-        case MODE_HALL: // »ô¶û±àÂëÆ÷
+        case MODE_HALL: // éœå°”ç¼–ç å™¨
         {
             // do nothing: samples already captured in general GPIO capture
-            // ²»²Ù×÷,ÒÑ¾­ÓÉGPIOµÃµ½Êı¾İÁË.
+            // ä¸æ“ä½œ,å·²ç»ç”±GPIOå¾—åˆ°æ•°æ®äº†.
         } break;
 
         case MODE_SINCOS: // 
@@ -515,9 +515,9 @@ void Encoder::sample_now()
         case MODE_SPI_ABS_CUI:
         case MODE_SPI_ABS_AEAT:
         case MODE_SPI_ABS_RLS:
-        case MODE_SPI_ABS_MA732: // ¾ø¶ÔÖµ±àÂëÆ÷
+        case MODE_SPI_ABS_MA732: // ç»å¯¹å€¼ç¼–ç å™¨
         {
-            abs_spi_start_transaction();// ´ÓSPI¶Á
+            abs_spi_start_transaction();// ä»SPIè¯»
             // Do nothing
         } break;
 
@@ -542,14 +542,14 @@ bool Encoder::read_sampled_gpio(Stm32Gpio gpio) {
     return false;
 }
 
-// »ñµÃhall×´Ì¬
+// è·å¾—hallçŠ¶æ€
 void Encoder::decode_hall_samples() {
     hall_state_ = (read_sampled_gpio(hallA_gpio_) ? 1 : 0)
                 | (read_sampled_gpio(hallB_gpio_) ? 2 : 0)
                 | (read_sampled_gpio(hallC_gpio_) ? 4 : 0);
 }
 
-// SPI¿ªÊ¼´«ÊäÊı¾İ. ´´½¨SPI task
+// SPIå¼€å§‹ä¼ è¾“æ•°æ®. åˆ›å»ºSPI task
 bool Encoder::abs_spi_start_transaction() 
 {
     if (mode_ & MODE_FLAG_ABS)
@@ -587,8 +587,8 @@ uint8_t cui_parity(uint16_t v) {
     return ~v & 3;
 }
 
-// ´Ó²»Í¬µÄ´«¸ĞÆ÷¶Áµ±Ç°Î»ÖÃÊı¾İ.
-// ĞŞ¸Äpos_abs_±äÁ¿
+// ä»ä¸åŒçš„ä¼ æ„Ÿå™¨è¯»å½“å‰ä½ç½®æ•°æ®.
+// ä¿®æ”¹pos_abs_å˜é‡
 void Encoder::abs_spi_cb(bool success) 
 {
     uint16_t pos;
@@ -695,7 +695,7 @@ bool Encoder::update() {
         case MODE_INCREMENTAL: {
             //TODO: use count_in_cpr_ instead as shadow_count_ can overflow
             //or use 64 bit
-            int16_t delta_enc_16 = (int16_t)tim_cnt_sample_ - (int16_t)shadow_count_;//tim_cnt_sample_ ÓÉsample_nowÍê³É.
+            int16_t delta_enc_16 = (int16_t)tim_cnt_sample_ - (int16_t)shadow_count_;//tim_cnt_sample_ ç”±sample_nowå®Œæˆ.
             delta_enc = (int32_t)delta_enc_16; //sign extend
         } break;
 
@@ -805,19 +805,19 @@ bool Encoder::update() {
         } break;
     }
 
-    shadow_count_ += delta_enc; // shadow_count_×ÔÔö  ¼ÇÂ¼ËùÓĞµÄ´«¸ĞÆ÷Êı¾İÀÛ¼Ó(ÄÚ²¿¾ø¶ÔÖµ´«¸ĞÆ÷?)
-    count_in_cpr_ += delta_enc; // ÔÚÒ»È¦ÄÚµÄcount ±ÈÈçÒ»È¦config_.cpr=16384 »á°´ÕÕÕâ¸öÊıÀ´ÇóÄ£
-    count_in_cpr_ = mod(count_in_cpr_, config_.cpr); // ÖØĞÂÏŞÖÆÔÚÃ¿Ò»È¦ÄÚ.
+    shadow_count_ += delta_enc; // shadow_count_è‡ªå¢  è®°å½•æ‰€æœ‰çš„ä¼ æ„Ÿå™¨æ•°æ®ç´¯åŠ (å†…éƒ¨ç»å¯¹å€¼ä¼ æ„Ÿå™¨?)
+    count_in_cpr_ += delta_enc; // åœ¨ä¸€åœˆå†…çš„count æ¯”å¦‚ä¸€åœˆconfig_.cpr=16384 ä¼šæŒ‰ç…§è¿™ä¸ªæ•°æ¥æ±‚æ¨¡
+    count_in_cpr_ = mod(count_in_cpr_, config_.cpr); // é‡æ–°é™åˆ¶åœ¨æ¯ä¸€åœˆå†….
 
-    if(mode_ & MODE_FLAG_ABS)//Èç¹ûÊÇ¾ø¶ÔÖµ±àÂëÆ÷
+    if(mode_ & MODE_FLAG_ABS)//å¦‚æœæ˜¯ç»å¯¹å€¼ç¼–ç å™¨
         count_in_cpr_ = pos_abs_latched;
 
-    // Memory for pos_circular posÕ¼ÁË¶àÉÙÈ¦
-    float pos_cpr_counts_last = pos_cpr_counts_;// ÏÈ´æ×¡pos_cpr_counts_ Õâ¸öÖµºÍcount_in_cpr_ºÜÏñ. Ö»ÊÇÊÇ¸¡µãĞÍ
+    // Memory for pos_circular poså äº†å¤šå°‘åœˆ
+    float pos_cpr_counts_last = pos_cpr_counts_;// å…ˆå­˜ä½pos_cpr_counts_ è¿™ä¸ªå€¼å’Œcount_in_cpr_å¾ˆåƒ. åªæ˜¯æ˜¯æµ®ç‚¹å‹
 
     //// run pll (for now pll is in units of encoder counts)
-    // Predict current pos Ô¤²âµ±Ç°Î»ÖÃ
-    pos_estimate_counts_ += current_meas_period * vel_estimate_counts_;// Õâ¸öÖµÔ¼Îªshadow_count_ Ô¤²âÖµ
+    // Predict current pos é¢„æµ‹å½“å‰ä½ç½®
+    pos_estimate_counts_ += current_meas_period * vel_estimate_counts_;// è¿™ä¸ªå€¼çº¦ä¸ºshadow_count_ é¢„æµ‹å€¼
     pos_cpr_counts_      += current_meas_period * vel_estimate_counts_;
     // Encoder model 
     auto encoder_model = [this](float internal_pos)->int32_t {
@@ -826,35 +826,35 @@ bool Encoder::update() {
         else
             return (int32_t)std::floor(internal_pos);
     };
-    // discrete phase detector ²âÁ¿Öµ-Ô¤²âÖµ
-    float delta_pos_counts = (float)(shadow_count_ - encoder_model(pos_estimate_counts_));// ×ÜÊıÔËĞĞ´«¸ĞÖµÉÏµÄ²îÖµ
-    float delta_pos_cpr_counts = (float)(count_in_cpr_ - encoder_model(pos_cpr_counts_));// È¦ÄÚÊıµÄ¸¡µã²î
+    // discrete phase detector æµ‹é‡å€¼-é¢„æµ‹å€¼
+    float delta_pos_counts = (float)(shadow_count_ - encoder_model(pos_estimate_counts_));// æ€»æ•°è¿è¡Œä¼ æ„Ÿå€¼ä¸Šçš„å·®å€¼
+    float delta_pos_cpr_counts = (float)(count_in_cpr_ - encoder_model(pos_cpr_counts_));// åœˆå†…æ•°çš„æµ®ç‚¹å·®
     delta_pos_cpr_counts = wrap_pm(delta_pos_cpr_counts, (float)(config_.cpr));
-    delta_pos_cpr_counts_ += 0.1f * (delta_pos_cpr_counts - delta_pos_cpr_counts_); // for debug ¼ÓÈ¨Æ½¾ù Ö»ÄÜ¼àÊÓÊı¾İÓÃ
+    delta_pos_cpr_counts_ += 0.1f * (delta_pos_cpr_counts - delta_pos_cpr_counts_); // for debug åŠ æƒå¹³å‡ åªèƒ½ç›‘è§†æ•°æ®ç”¨
     // pll feedback 
-    pos_estimate_counts_ += current_meas_period * pll_kp_ * delta_pos_counts;// ¸üĞÂ×ÜÊıºÍÈ¦ÄÚÊıµÄÔ¤²âÏµÊı
-    pos_cpr_counts_ += current_meas_period * pll_kp_ * delta_pos_cpr_counts;// ¸üĞÂÈ¦ÄÚ²îÖµÁ¿.¼Ó»Øµ½Ô¤²âÖµ
+    pos_estimate_counts_ += current_meas_period * pll_kp_ * delta_pos_counts;// æ›´æ–°æ€»æ•°å’Œåœˆå†…æ•°çš„é¢„æµ‹ç³»æ•°
+    pos_cpr_counts_ += current_meas_period * pll_kp_ * delta_pos_cpr_counts;// æ›´æ–°åœˆå†…å·®å€¼é‡.åŠ å›åˆ°é¢„æµ‹å€¼
     pos_cpr_counts_ = fmodf_pos(pos_cpr_counts_, (float)(config_.cpr));
-    vel_estimate_counts_ += current_meas_period * pll_ki_ * delta_pos_cpr_counts;// ¸üĞÂºãËÙÄ£ĞÍ
+    vel_estimate_counts_ += current_meas_period * pll_ki_ * delta_pos_cpr_counts;// æ›´æ–°æ’é€Ÿæ¨¡å‹
     bool snap_to_zero_vel = false;
     if (std::abs(vel_estimate_counts_) < 0.5f * current_meas_period * pll_ki_) {
         vel_estimate_counts_ = 0.0f;  //align delta-sigma on zero to prevent jitter
         snap_to_zero_vel = true;
     }
 
-    // Outputs from Encoder for Controller ×îºóµÄpos_estimate_ ºÍvel_estimate_
-    pos_estimate_ = pos_estimate_counts_ / (float)config_.cpr; // ³ıµôÒ»È¦µÄÂö³åÁ¿.¾ÍÊÇµ±Ç°Î»ÖÃºÍµ±Ç°ËÙ¶È
+    // Outputs from Encoder for Controller æœ€åçš„pos_estimate_ å’Œvel_estimate_
+    pos_estimate_ = pos_estimate_counts_ / (float)config_.cpr; // é™¤æ‰ä¸€åœˆçš„è„‰å†²é‡.å°±æ˜¯å½“å‰ä½ç½®å’Œå½“å‰é€Ÿåº¦
     vel_estimate_ = vel_estimate_counts_ / (float)config_.cpr;
     
     // TODO: we should strictly require that this value is from the previous iteration
     // to avoid spinout scenarios. However that requires a proper way to reset
-    // the encoder from error states. pos_circularÔÚÈ¦ÄÚµÄÎ»ÖÃ, [0-1]
+    // the encoder from error states. pos_circularåœ¨åœˆå†…çš„ä½ç½®, [0-1]
     float pos_circular = pos_circular_.any().value_or(0.0f);
     pos_circular +=  wrap_pm((pos_cpr_counts_ - pos_cpr_counts_last) / (float)config_.cpr, 1.0f);
     pos_circular = fmodf_pos(pos_circular, axis_->controller_.config_.circular_setpoint_range);
     pos_circular_ = pos_circular;
 
-    //// run encoder count interpolation ²åÖµ
+    //// run encoder count interpolation æ’å€¼
     int32_t corrected_enc = count_in_cpr_ - config_.phase_offset;
     // if we are stopped, make sure we don't randomly drift
     if (snap_to_zero_vel || !config_.enable_phase_interpolation) {
@@ -872,17 +872,17 @@ bool Encoder::update() {
         if (interpolation_ > 1.0f) interpolation_ = 1.0f;
         if (interpolation_ < 0.0f) interpolation_ = 0.0f;
     }
-    float interpolated_enc = corrected_enc + interpolation_;// ×îºóµÄ²åÖµ,¸ù¾İÈ¦ÄÚÂö³åÊı Ôö¼Ó0-1Ö®¼äÒ»¸öÖµ
+    float interpolated_enc = corrected_enc + interpolation_;// æœ€åçš„æ’å€¼,æ ¹æ®åœˆå†…è„‰å†²æ•° å¢åŠ 0-1ä¹‹é—´ä¸€ä¸ªå€¼
 
-    //// compute electrical phase ¼ÆËãµç½Ç¶È(pole_pairs 7*2 * 3.1415 * (1/16384))
+    //// compute electrical phase è®¡ç®—ç”µè§’åº¦(pole_pairs 7*2 * 3.1415 * (1/16384))
     //TODO avoid recomputing elec_rad_per_enc every time
     float elec_rad_per_enc = axis_->motor_.config_.pole_pairs * 2 * M_PI * (1.0f / (float)(config_.cpr));
-    // ÓÖ¼õµô´óÔ¼Ò»¸ö0.5 * Ã¿Ò»Âö³åÁ¿µÄµç½Ç¶È µÃµ½ÕæÕıµÄµç½Ç¶È
+    // åˆå‡æ‰å¤§çº¦ä¸€ä¸ª0.5 * æ¯ä¸€è„‰å†²é‡çš„ç”µè§’åº¦ å¾—åˆ°çœŸæ­£çš„ç”µè§’åº¦
     float ph = elec_rad_per_enc * (interpolated_enc - config_.phase_offset_float);
     
     if (is_ready_) {
-        phase_ = wrap_pm_pi(ph) * config_.direction; // µç½Ç¶ÈµÄÕæÊµÖµ(´ø·½Ïò)
-        phase_vel_ = (2*M_PI) * *vel_estimate_.present() * axis_->motor_.config_.pole_pairs * config_.direction; // µç½Ç¶ÈËÙ¶È
+        phase_ = wrap_pm_pi(ph) * config_.direction; // ç”µè§’åº¦çš„çœŸå®å€¼(å¸¦æ–¹å‘)
+        phase_vel_ = (2*M_PI) * *vel_estimate_.present() * axis_->motor_.config_.pole_pairs * config_.direction; // ç”µè§’åº¦é€Ÿåº¦
     }
 
     return true;
