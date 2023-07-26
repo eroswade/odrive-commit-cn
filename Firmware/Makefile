@@ -74,8 +74,10 @@ flash-jlink-ocd: all
 	$(OPENOCDJLINK) \
 		-c 'program $(FIRMWARE) verify reset' \
 		-c exit
+# flash-jlink: all
+# 	jlink -if swd -device GD32F405RG -speed 4000 gd32f405rg.jlink
 flash-jlink: all
-	jlink -if swd -device GD32F405RG -speed 4000 gd32f405rg.jlink
+	JLinkExe -if swd -device STM32F405RG -speed 4000 stm32f405rg.jlink
 gdb-stlink2:
 	$(GDB) $(FIRMWARE)
 
@@ -111,6 +113,7 @@ jflash: flash-jlink
 gdb: gdb-stlink2
 erase: erase-stlink2
 unlock: unlock-stlink2
+update: ../tools/odrivetool  dfu ./build/ODriveFirmware.bin
 
 .PHONY: stlink2-config flash-stlink2 gdb-stlink2 erase-stlink2 unlock-stlink2
 .PHONY: flash-bmp gdb-bmp
