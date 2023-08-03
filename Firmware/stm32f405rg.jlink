@@ -1,0 +1,2 @@
+loadbin build/ODriveFirmware.hex, 0x08000000
+exit
