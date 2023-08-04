@@ -1456,7 +1456,7 @@ interfaces:
           gpio3_pwm_mapping: {type: ODrive.Endpoint, c_name: 'pwm_mappings[2]', doc: Make sure the corresponding GPIO is in `GPIO_MODE_PWM`.}
           gpio4_pwm_mapping: {type: ODrive.Endpoint, c_name: 'pwm_mappings[3]', doc: Make sure the corresponding GPIO is in `GPIO_MODE_PWM`.}
       axis0: {type: ODrive.Axis, c_name: get_axis(0)}
-      axis1: {type: ODrive.Axis, c_name: get_axis(1)}
+      # axis1: {type: ODrive.Axis, c_name: get_axis(1)}
 
 valuetypes:
   ODrive.GpioMode:

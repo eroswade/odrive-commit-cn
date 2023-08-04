@@ -830,6 +830,8 @@ class LibFibre():
         else:
             py_obj = self._objects[obj_handle]
 
+        # print(py_obj)
+
         # Note: this refcount does not count the python references to the object
         # but rather mirrors the libfibre-internal refcount of the object. This
         # is so that we can destroy the Python object when libfibre releases it.
@@ -846,7 +848,7 @@ class LibFibre():
     def _on_found_object(self, ctx, obj, intf):
         py_obj = self._load_py_obj(obj, intf)
         discovery = self.discovery_processes[ctx]
-
+        print("_on_found_object")
         # TODO: this is a hack because ObjectPtrCodec is broken
         def load(subobj):
             for key in dir(subobj):
@@ -944,12 +946,14 @@ class _Domain():
         #decrement_lib_refcount()
 
     def _start_discovery(self):
+        print('_Domain _start_discovery')
         discovery = Discovery(self)
         discovery._id = insert_with_new_id(self._libfibre.discovery_processes, discovery)
         libfibre_start_discovery(self._domain_handle, byref(discovery._discovery_handle), self._libfibre.c_on_found_object, self._libfibre.c_on_lost_object, self._libfibre.c_on_discovery_stopped, discovery._id)
         return discovery
 
     async def _discover_one(self):
+        print('_Domain _discover_one')
         discovery = self._start_discovery()
         obj = await discovery._next()
         discovery._stop()
@@ -968,6 +972,7 @@ class _Domain():
         Returns a `Discovery` object on which `stop()` can be called to
         terminate the discovery.
         """
+        print('_Domain run_discovery')
         discovery = run_coroutine_threadsafe(self._libfibre.loop, self._start_discovery)
         async def loop():
             while True:
@@ -1021,6 +1026,7 @@ def _run_event_loop():
     while len(libfibre._objects):
         libfibre._objects.pop(list(libfibre._objects.keys())[0])._destroy()
     assert(len(libfibre.interfaces) == 0)
+    print('_run_event_loop')
 
     libfibre = None
 

@@ -81,6 +81,9 @@ def launch_shell(args, logger):
 
     async def mount(obj):
         serial_number_str = await odrive.utils.get_serial_number_str(obj)
+        # print('serial_number_str')
+        # print(serial_number_str)  # 395C31643536
+
         if ((not args.serial_number is None) and (serial_number_str != args.serial_number)):
             return None # reject this object
         if hasattr(obj, '_otp_valid_property') and not await obj._otp_valid_property.read():
